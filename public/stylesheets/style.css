@@ -1,0 +1,711 @@
+/* YUI Reset */
+html{color:#000;}body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,code,form,fieldset,legend,input,textarea,p,blockquote,th,td{margin:0;padding:0;}table{border-collapse:collapse;border-spacing:0;}fieldset,img{border:0;}address,caption,cite,code,dfn,em,strong,th,var{font-style:normal;font-weight:normal;}li{list-style:none;}caption,th{text-align:left;}h1,h2,h3,h4,h5,h6{font-size:100%;font-weight:normal;}q:before,q:after{content:'';}abbr,acronym{border:0;font-variant:normal;}sup{vertical-align:text-top;}sub{vertical-align:text-bottom;}input,textarea,select{font-family:inherit;font-size:inherit;font-weight:inherit;}input,textarea,select{font-size:100%;}legend{color:#000;}ins{text-decoration:none;}
+
+body {
+  padding: 5px 15px;
+  font: 12px Arial, sans-serif;
+  background-color: #8C92AC !important;
+}
+
+strong {
+  font-weight: bold;
+}
+
+em {
+  font-style: italic;
+}
+
+h3, h4 {
+  font-weight: bold;
+}
+
+h3 {
+  font-size: 15px;
+  margin-bottom: 10px;
+}
+
+h4 {
+  font-size: 13px;
+  margin: 10px 0px 8px 0px;
+}
+
+a {
+  color: #000;
+  text-decoration: none;
+  border-bottom: 1px dotted #555;
+}
+
+hr {
+  clear: both;
+  border: none;
+  border-top: 1px dotted #555;
+}
+
+code {
+  padding: 1px 5px 1px 5px;
+  background-color: #b9cf8a;
+  color: #000;
+}
+
+/* Input fields */
+input,
+textarea {
+  border: none;
+  font-size: 11px;
+  -moz-border-radius: 5px;
+  -webkit-border-radius: 5px;
+  border-radius: 5px;
+  background: #fff;
+}
+
+input {
+  margin: 0px 2px;
+  height: 18px;
+}
+
+/* Clickables */
+.button,
+.colorsample,
+.clickbox {
+  color: #fff;
+  -moz-border-radius: 5px;
+  -webkit-border-radius: 5px;
+  border-radius: 5px;
+  margin: 0px 2px;
+  cursor: pointer;
+}
+
+.button,
+.clickbox {
+  background-color: #555;
+}
+
+.button {
+  border: none;
+  padding: 2px 4px;
+}
+
+.button:hover {
+  color: #000;
+  background-color: #FFA500;
+}
+
+.colorsample,
+.clickbox {
+  width: 20px;
+  height: 20px;
+  line-height: 20px;
+  display: block;
+  text-align: center;
+}
+
+/* Active clickables */
+.active {
+  color: #000;
+  background-color: #FFA500;
+}
+
+/* Input box for custom colors */
+.custom-rgb {
+  width: 45px;
+}
+
+/* UI panels */
+.panel {
+  border: 2px solid #555;
+  -moz-border-radius: 10px;
+  -webkit-border-radius: 10px;
+  border-radius: 10px;
+  -moz-box-shadow: 0px 0px 5px #555;
+  -webkit-box-shadow: 0px 0px 5px #555;
+  box-shadow: 0px 0px 5px #555;
+  background-color: #8C92AC;
+  position: absolute;
+  display: none;
+  padding: 10px;
+  z-index: 10;
+}
+
+.panel h3 {
+  text-align: center;
+}
+
+p {
+  margin-bottom: 15px;
+}
+
+.clickset {
+  margin-bottom: 8px;
+}
+
+.clickset li {
+  clear: both;
+  margin-bottom: 2px;
+  line-height: 20px;
+}
+
+.inputset {
+  margin-bottom: 3px;
+}
+
+/* Text shadow for bright colors */
+.hl-high {
+  -moz-text-shadow: 0px 1px 2px #000;
+  -o-text-shadow: 0px 1px 2px #000;
+  -webkit-text-shadow: 0px 1px 2px #000;
+  text-shadow: 0px 1px 2px #000;
+}
+
+/* Text shadow for dark colors */
+.hl-low {
+  -moz-text-shadow: 0px 0px 2px #fff;
+  -o-text-shadow: 0px 0px 2px #fff;
+  -webkit-text-shadow: 0px 0px 2px #fff;
+  text-shadow: 0px 0px 2px #fff;
+}
+
+/* Highlight for nex boards, etc */
+.nu {
+  -moz-box-shadow: 0px 0px 8px #FFA500;
+  -webkit-box-shadow: 0px 0px 8px #FFA500;
+  -o-box-shadow: 0px 0px 8px #FFA500;
+  box-shadow: 0px 0px 8px #FFA500;
+  -moz-animation: blink 1s ease-in-out infinite alternate;
+  -webkit-animation: blink 1s ease-in-out infinite alternate;
+  animation: blink 1s ease-in-out infinite alternate;
+}
+
+@-moz-keyframes blink {
+  0% { -moz-box-shadow: 0px 0px 1px #FFA500; }
+  100% { -moz-box-shadow: 0px 0px 8px #FFA500; }
+}
+@-webkit-keyframes blink {
+  0% { -webkit-box-shadow: 0px 0px 1px #FFA500; }
+  100% { -webkit-box-shadow: 0px 0px 8px #FFA500; }
+}
+@keyframes blink {
+  0% { box-shadow: 0px 0px 1px #FFA500; }
+  100% { box-shadow: 0px 0px 8px #FFA500; }
+}
+
+/* Notifications */
+.msg-error,
+.msg-ok {
+  -moz-border-radius:3px;
+  -webkit-border-radius:3px;
+  border-radius: 3px;
+  padding: 1px 5px 1px 5px;
+}
+
+.msg-ok {
+  background-color: #b9cf8a;
+  color: #000;
+}
+
+.msg-error {
+  background-color: #E62020;
+  color: #fff;
+}
+
+.sep {
+  /*color: #555;*/
+  font-size: 8px;
+}
+
+.minilink {
+  font-weight: normal;
+  font-size: 12px;
+}
+
+/***************************************************************/
+/* Container for the title and the navigation menu */
+#header {
+  text-align: center;
+}
+
+/* Board's title */
+#title {
+  font-size: 40px;
+  font-weight: bold;
+}
+
+/* Info bar: update time, order, etc on the left */
+/* Settings bar: buttons on the right */
+#info,
+#settings {
+  padding: 10px 0px 5px 0px;
+  width: 50%;
+}
+
+#info {
+  float: left;
+}
+
+#settings {
+  float: right;
+  text-align: right; /* sup Chrome */
+}
+
+/* Wrapper for the bars mentioned above */
+#ctrl {
+  margin-top: 15px;
+  line-height: 20px;
+}
+
+#filtered-count,
+#hidden-count,
+#ordered-date,
+#ordered-alt {
+  font-weight: bold;
+}
+
+#ordered-date,
+#ordered-alt,
+#filtered-label,
+#hidden-label {
+  display: none;
+}
+
+/* "Easymodo enabled" message */
+#easymodo {
+  font-style: italic;
+}
+
+/* Search "Quickfilter" Bar related elements */
+#qf-cnt {
+  display: none;
+}
+
+#qf-box {
+  width: 75px;
+}
+
+/* Messages displayed in the upper left corner */
+#protip {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  background: #b9cf8a;
+  color: #000;
+  padding: 4px 10px;
+  text-align: left;
+  -webkit-border-bottom-right-radius: 6px;
+  -moz-border-radius-bottomright: 6px;
+  border-bottom-right-radius: 6px;
+}
+
+#protip a {
+  border-color: #fff;
+}
+
+/* Top navigation menu */
+#topnav {
+  margin-top: 15px;
+  line-height: 20px;
+}
+
+#topnav li {
+  display: inline;
+  margin-right: 2px;
+}
+
+#topnav img {
+  vertical-align: middle;
+  padding-bottom: 2px;
+}
+
+#topnav a {
+  color: #fff;
+  background-color: #555555;
+  -moz-border-radius: 5px;
+  -webkit-border-radius: 5px;
+  border-radius: 5px;
+  padding: 2px 4px;
+  text-decoration: none;
+  border: none;
+}
+
+#topnav a:hover {
+  color: #000;
+  background-color: #FFA500;
+}
+
+#rss a,
+#rss a:hover {
+  background-color: transparent;
+}
+
+/* Front page menu */
+.front a {
+  padding: 3px 5px;
+  font-size: 20px;
+}
+
+/***************************************************************/
+
+/* Theme editor panel */
+#theme {
+  width: 330px;
+  top: 70px;
+  left: 50%;
+  margin-left: -178px;
+}
+
+#theme-colors li {
+  margin-bottom: 3px; 
+}
+
+#theme-bg-url {
+  width: 260px;
+}
+
+#theme-protip {
+  padding: 10px;
+  width: 500px;
+  top: -10px;
+  left: 50%;
+  margin-left: -250px;
+}
+
+/***************************************************************/
+
+/* Filters panel */
+#filters {
+  width: 360px;
+  top: 70px;
+  left: 50%;
+  margin-left: -193px;
+}
+
+/* Checkboxes and color samples centering */
+#filters .clickbox,
+#filters .colorsample {
+  margin: auto;
+}
+
+/* Filters help panel */
+#filters-protip {
+  padding: 10px;
+  width: 570px;
+  top: -10px;
+  left: 50%;
+  margin-left: -295px;
+}
+
+#filters-protip ul {
+  margin-bottom: 10px;
+}
+
+#filters-protip li {
+  margin: 5px 0px;
+}
+
+/* Filters color palette */
+#filter-palette {
+  width: 95px;
+  padding: 5px;
+}
+
+/* Filters color palette clear and close buttons */
+#filter-palette-clear,
+#filter-palette-close {
+  margin-top: 5px;
+  float: right;
+}
+
+/* Filters color palette table cells */
+#filter-palette table td {
+  padding: 2px;
+  text-align: center;
+}
+
+#filter-rgb-ok {
+  float: right;
+}
+
+#filter-list input {
+  width: 210px;
+}
+
+#filter-table {
+  width: 100%;
+}
+
+#filter-table th {
+  font-weight: bold;
+  font-size: 11px;
+  min-width: 25px;
+}
+
+#filter-table th,
+#filter-table td {
+  text-align: center;
+}
+
+#filter-table tbody td {
+  padding: 8px 0px 0px 0px;
+}
+
+#filter-table tfoot td {
+  padding-top: 20px;
+}
+
+#theme-msg,
+#filters-msg {
+  float: right;
+  margin: 1px 3px 0px;
+  display: none;
+}
+
+/***************************************************************/
+
+/* "Empty threadlist" message */
+.nodata {
+  background: #fff;
+  line-height: 400px;
+  text-align: center;
+  font-size: 20px;
+}
+
+/* donate button */
+#donate {
+  margin: 10px auto 0px auto;
+  width: 100px;
+}
+
+/***************************************************************/
+
+/* Threads main container */
+#threads {
+  margin-top: 15px;
+  padding: 20px 0px;
+  text-align: center;
+}
+
+/* Thread wrapper */
+.thread {
+  float: left;
+  overflow: hidden;
+  word-wrap: break-word;
+}
+
+/* Thread in compact mode */
+.small .thread {
+  width: 140px;
+  height: 155px;
+}
+
+/* Thread in large mode */
+.large .thread {
+  width: 270px;
+  height: 280px;
+}
+
+/* Thread in compact mode with teaser displayed */
+.extended-small .thread {
+  width: 140px;
+  height: 290px;
+}
+
+/* Thread in large mode with teaser displayed */
+.extended-large .thread {
+  width: 270px;
+  height: 350px;
+}
+
+/* Thumbnail */
+.thumb {
+  border: 2px solid #555;
+  -moz-border-radius:3px;
+  -webkit-border-radius:3px;
+  border-radius: 3px;
+  display: block;
+  margin: auto;
+  z-index: 2;
+}
+
+.thumb:hover {
+  border-color: #FFA500;
+}
+
+/* Scaled thumbnail when hovered in compact mode */
+.scaled {
+  position: absolute;
+  -moz-transform: scale(1.8);
+  -webkit-transform: scale(1.8);
+  -ms-transform: scale(1.8);
+  -o-transform: scale(1.8);
+}
+
+/* Thumbnails in compact mode */
+.extended-small .thumb,
+.small .thumb {
+  max-width: 125px;
+  max-height: 125px;
+}
+
+/* Thumbnails in large mode */
+.extended-large .thumb,
+.large .thumb {
+  max-width: 251px;
+  max-height: 251px;
+}
+
+/* Reply and image count indicators */
+.meta {
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+/* Teaser, hidden */
+.teaser {
+  display: none;
+}
+
+/* Teaser, displayed */
+.extended-small .teaser,
+.extended-large .teaser {
+  display: block;
+}
+
+/* Thumbnail animation */
+.borderblink {
+  -moz-animation: borderblink 1s step-end infinite alternate;
+  -webkit-animation: borderblink 1s step-start infinite alternate;
+  animation: borderblink 1.5s step-start infinite alternate;
+}
+
+@-moz-keyframes borderblink {
+  50% { border-color: #000; }
+}
+
+@-webkit-keyframes borderblink {
+  50% { border-color: #000; }
+}
+
+@keyframes borderblink {
+  50% { border-color: #000; }
+}
+
+
+/***************************************************************/
+
+/* Footer */
+#footer {
+  text-align: center;
+  padding: 10px 0;
+  font-size: 11px;
+}
+
+#totop {
+  text-align: center;
+  margin: 20px 0px;
+}
+
+/***************************************************************/
+
+/* <noscript> styling */
+#nojs {
+  background-color: #000;
+  text-align: center;
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  height: 100%;
+  z-index: 99;
+  opacity: 0.7;
+  filter:alpha(opacity=70);
+}
+
+#nojs > span {
+  color: #000;
+  background-color: #8C92AC;
+  padding: 5px;
+  position: relative;
+  top: 45%;
+  font-size: 25px;
+}
+
+#donate input {
+  border: none;
+  background: none;
+}
+
+/***************************************************************/
+
+/* Stats page */
+#stats {
+  padding-top: 30px;
+}
+
+#stats h2 {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.chart {
+  width: 960px;
+  height: 400px;
+  padding: 0px;
+  margin: 0px auto 30px auto;
+  border: 2px solid #555555;
+  -moz-border-radius:3px;
+  -webkit-border-radius:3px;
+  border-radius: 3px;
+}
+
+/***************************************************************/
+
+.left {
+  float: left;
+}
+
+.right {
+  float: right;
+}
+
+.clear {
+  clear: both;
+}
+
+.center {
+  text-align: center;
+}
+
+.middle-txt {
+  line-height: 19px;
+}
+
+/***************************************************************/
+
+/* Tooltips */ 
+.tipsy { font-size: 12px; position: absolute; padding: 5px; z-index: 100000; }
+  .tipsy-inner { padding: 5px 8px 4px 8px; background-color: black; color: #E5E4E2; max-width: 300px; text-align: left; word-wrap: break-word; }
+
+  /* Rounded corners */
+  .tipsy-inner { -moz-border-radius:3px; -webkit-border-radius:3px; border-radius: 3px; }
+  
+  /* Uncomment for shadow */
+  /*.tipsy-inner { -webkit-box-shadow: 0px 0px 5px #000000; -moz-box-shadow: 0px 0px 5px #000000; box-shadow: 0px 0px 5px #000000; }*/
+  
+  .tipsy-arrow { position: absolute; width: 0; height: 0; border: 5px solid transparent; }
+  
+  /* Rules to colour arrows */
+  .tipsy-arrow-n { border-bottom-color: #000; }
+  .tipsy-arrow-s { border-top-color: #000; }
+  .tipsy-arrow-e { border-left-color: #000; }
+  .tipsy-arrow-w { border-right-color: #000; }
+  
+  .tipsy-n .tipsy-arrow, .tipsy-nw .tipsy-arrow, .tipsy-ne .tipsy-arrow { top: 0; border-top: none; }
+  .tipsy-s .tipsy-arrow, .tipsy-sw .tipsy-arrow, .tipsy-se .tipsy-arrow { bottom: 0; border-bottom: none; }
+  .tipsy-n .tipsy-arrow, .tipsy-s .tipsy-arrow { left: 50%; margin-left: -5px; }
+  .tipsy-nw .tipsy-arrow, .tipsy-sw .tipsy-arrow { left: 10px; }
+  .tipsy-ne .tipsy-arrow, .tipsy-se .tipsy-arrow { right: 10px; }
+  .tipsy-e .tipsy-arrow, .tipsy-w .tipsy-arrow { top: 50%; margin-top: -5px; }
+  .tipsy-e .tipsy-arrow { right: 0; border-right: none; }
+  .tipsy-w .tipsy-arrow { left: 0; border-left: none; }
+  
+.tipsy em { font-weight: bold; }

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>4chan Catalog - /<%= @opts.slug %>/</title>
+  <meta name="description" content="4chan's /<%= @opts.slug %>/ Catalog displays every thread on a single page.">
+  <meta name="keywords" content="4chan,/<%= @opts.slug %>/,catalog,catalogue,threads,list,stats,statistics">
+  <% if @opts.write_rss %>
+  <link rel="alternate" title="4chan Catalog - /<%= @opts.slug %>/" href="/<%= @opts.slug %>/feed.rss" type="application/rss+xml">
+  <% end %>
+  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.0/jquery.min.js"></script>
+  <script type="text/javascript" src="/javascripts/fourcat-ui.js?0"></script>
+  <link rel="stylesheet" type="text/css" href="/stylesheets/style.css?0">
+  <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+</head>
+<body contextmenu="ctxmenu-main">
+<!--<div id="protip"></div>-->
+<script type="text/javascript">
+var catalog = <%= jsonify_threads(threadlist, order) %>;
+</script>
+<div id="header">
+  <h1 id="title"><%= @opts.title %></h1>
+  <ul id="topnav">
+    <li><a class="button" href="/">Home</a></li><li class="sep">|</li>
+    <% if @opts.stats %>
+    <li><a class="button" href="/stats.html">Stats</a></li>
+    <li class="sep">|</li>
+    <% end %>
+    <li><a class="button" href="/a/">/a/</a></li>
+    <li><a class="button" href="/jp/">/jp/</a></li>
+    <li class="sep">|</li>
+    <li><a class="wut button" target="_blank" title="/<%= @opts.slug %>/ on 4chan" href="http://boards.4chan.org/<%= @board %>/"><img alt="" src="/images/4chan.png"></a></li>
+    <% if @opts.write_rss %>
+    <li id="rss"><a target="_blank" class="wut" title="RSS Feed" href="/<%= @opts.slug %>/feed.rss"><img alt="" src="/images/rss.png"></a></li>
+    <% end %>
+  </ul>
+</div>
+<div id="ctrl">
+  <div id="info">
+    <a id="refresh" data-title="Delay is" href="" class="button">Refresh</a> Updated <span id="updated"></span> ago &mdash; Ordered by <span id="ordered-date">creation date</span><span id="ordered-alt">bump date</span><span id="filtered-label"> &mdash; Filtered threads: <span id="filtered-count"></span></span><span id="hidden-label"> &mdash; Hidden threads: <span id="hidden-count"></span></span>
+  </div>
+  <div id="settings">
+    <span>Reorder:</span><span data-lbl-date="Date" data-lbl-alt="Natural" id="order-ctrl" class="button"></span>
+    <span>Resize:</span><span data-lbl-small="Small" data-lbl-large="Large" id="size-ctrl" class="button"></span>
+    <span>Teaser:</span><span data-lbl-show="Show" data-lbl-hide="Hide" id="teaser-ctrl" class="button"></span>
+    <span class="sep">|</span>
+    <span id="filters-ctrl" class="button">Filters</span>
+    <span id="theme-ctrl" class="button">Theme</span>
+    <span title="Redirect to the archive" id="proxy-ctrl" class="button">Proxy</span>
+    <span id="qf-ctrl" class="button">Search</span>
+    <span style="display:none" id="qf-cnt">
+      <input type="text" id="qf-box" name="qf-box"><span title="Search (Enter)" id="qf-ok" class="button">&#x2714;</span><span title="Cancel (Escape)" id="qf-clear" class="button">&#x2716;</span>
+    </span>
+  </div>
+</div>
+<div class="clear"></div>
+<hr>
+<div id="threads"></div>
+<div id="totop"><span class="button">&#8593; Back to Top &#8593;</span></div>
+<hr>
+<div id="footer">
+  Running <a href="https://github.com/desuwa/fourcat">4cat <%= VERSION %></a> &mdash; Data pulled from <a href="http://www.4chan.org">4chan.org</a>
+</div>
+<noscript>
+  <div id="nojs">
+    <span>Your web browser must have JavaScript enabled in order for this site to display correctly.</span>
+  </div>
+</noscript>
+<div id="filters" class="panel">
+  <div id="filters-protip" class="panel">
+    <h4>Patterns</h4>
+    <ul>
+      <li>
+        <ul>
+          <li><strong>Matching whole words:</strong></li>
+          <li><code>craft</code> &mdash; will match <em>"craft"</em> but not <em>"minecraft"</em> or <em>"diablocraft"</em>.</li>
+        </ul>
+      </li>
+      <li>
+        <ul>
+          <li><strong>AND operator:</strong></li>
+          <li><code>detachable hats</code> &mdash; will match teasers containing the words <em>"detachable"</em> AND <em>"hats"</em>.</li>
+        </ul>
+      </li>
+      <li>
+        <ul>
+          <li><strong>OR operator:</strong></li>
+          <li><code>gsl|starcraft|sc2</code> &mdash; matches <em>"gsl"</em> OR <em>"starcraft"</em> OR <em>"sc2"</em></li>
+        </ul>
+      </li>
+      <li>
+        <ul>
+          <li><strong>Mixing both operators:</strong></li>
+          <li><code>sanae|ohana pure</code> &mdash; matches <em>"pure"</em> AND <em>"sanae"</em>, or <em>"pure"</em> AND <em>"ohana"</em></li>
+        </ul>
+      </li>
+      <li>
+        <ul>
+          <li><strong>Exact match search:</strong></li>
+          <li><code>"until you like it"</code> &mdash; place double quotes around the pattern to search for an exact string</li>
+        </ul>
+      </li>
+      <li>
+        <ul>
+          <li><strong>Wildcards:</strong></li>
+          <li><code>*sankaku*</code> &mdash; this can find threads contaning links to sankaku</li>
+          <li><code>idolm*ster</code> &mdash; can match <em>idolmaster</em> or <em>idolm@ster</em>, etc...</li>
+        </ul>
+      </li>
+      <li>
+        <ul>
+          <li><strong>Filtering by name or tripcode:</strong></li>
+          <li>Prefix the pattern with # to search inside the <em>author</em> field:</li>
+          <li><code>#!!3n8yyKtTvbU</code> &mdash; matches <em>SHiN !!3n8yyKtTvbU</em> or <em>Ayano Sugiura !!3n8yyKtTvbU</em>, etc...</li>
+          <li><code>#Ayano</code> &mdash; matches <em>Ayano</em> or <em>Ayano Sugiura</em> or <em>Ayano Sugiura !!3n8yyKtTvbU</em>, etc...</li>
+          <li><code>#</code> &mdash; this will match all non-anonymous threads.</li>
+        </ul>
+      </li>
+      <li>
+        <ul>
+          <li><strong>It is also possible to filter by regular expression:</strong></li>
+          <li><code>/^(?=.*detachable)(?=.*hats).*$/i</code> &mdash; AND operator.</li>
+          <li><code>/^(?!.*touhou).*$/i</code> &mdash; NOT operator.</li>
+          <li><code>/^&amp;gt;/</code> &mdash; threads starting with a quote (<em>"&gt;"</em> character as an html entity).</li>
+          <li><code>/^$/</code> &mdash; threads with no text.</li>
+        </ul>
+      </li>
+    </ul>
+    <hr>
+    <h4>Controls</h4>
+    <ul>
+      <li><strong>On</strong> &mdash; enables or disables the filter.</li>
+      <li><strong>Hide</strong> &mdash; hides matched threads.</li>
+      <li><strong>Top</strong> &mdash; puts matched threads on top of the list.</li>
+    </ul>
+    <hr>
+    <ul>
+      <li class="center"><span id="filters-help-close" class="button">Close</span></li>
+    </ul>
+  </div>
+  <span id="filters-help-open" class="button right">Help</span><h3>Filters and Highlighters</h3>
+  <hr>
+  <ul>
+    <li>&mdash; You can also hide threads by Shift-clicking the thumbnails.
+    <li>&mdash; Click <a id="filters-clear-hidden" href="">here</a> to unhide all manually hidden threads.</li>
+  </ul>
+  <hr>
+  <table id="filter-table">
+    <thead>
+      <tr>
+        <th>On</th>
+        <th>Pattern</th>
+        <th>Color</th>
+        <th>Hide</th>
+        <th>Top</th>
+        <th>Del</th>
+      </tr>
+    </thead>
+    <tbody id="filter-list">
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="6">
+          <span id="filters-add" class="button left">Add</span>
+          <span id="filters-close" class="button right">Close</span>
+          <span id="filters-save" class="button right">Save</span>
+          <span id="filters-msg"></span>
+        </td>
+      </tr>
+    </tfoot>
+  </table>
+  <div id="filter-palette" class="panel">
+    <table id="filter-color-table">
+      <tbody>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td>Custom</td>
+        </tr>
+        <tr>
+          <td class="middle-txt">#<input class="custom-rgb" type="text" name="custom-rgb" value="" id="filter-rgb"><span id="filter-rgb-ok" class="clickbox"></span></td>
+        </tr>
+        <tr>
+          <td>
+            <span id="filter-palette-close" class="button">Close</span>
+            <span id="filter-palette-clear" class="button">Clear</span>
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+<div id="theme" class="panel">
+<h3>Theme</h3>
+  <hr>
+  <ul class="clickset">
+    <li><span id="theme-notipsy" class="clickbox left"></span>&mdash; Disable styled tooltips on thumbnails.</li>
+    <li><span id="theme-magnify" class="clickbox left"></span>&mdash; Enable thumbnail magnification in compact mode.</li>
+  </ul>
+  <h4>Colors<a class="minilink right" href="http://kuler.adobe.com/#create/fromacolor" target="_blank">adobe kuler</a></h4>
+  <ul id="theme-colors">
+    <li>#<input id="theme-color-0" class="custom-rgb" type="text" name="theme-color-0" value="">&mdash; Background color.</li>
+    <li>#<input id="theme-color-1" class="custom-rgb" type="text" name="theme-color-1" value="">&mdash; Buttons, menu links and borders.</li>
+    <li>#<input id="theme-color-2" class="custom-rgb" type="text" name="theme-color-2" value="">&mdash; Highlighted buttons and borders.</li>
+    <li>#<input id="theme-color-3" class="custom-rgb" type="text" name="theme-color-3" value="">&mdash; Base text color.</li>
+    <li>#<input id="theme-color-4" class="custom-rgb" type="text" name="theme-color-4" value="">&mdash; Button text and links.</li>
+    <li>#<input id="theme-color-5" class="custom-rgb" type="text" name="theme-color-5" value="">&mdash; Highlighted button text and links.</li>
+  </ul>
+  <hr>
+  <h4>Background Image</h4>
+  <div id="theme-bg">
+    <div class="clickset">Url: <input type="text" id="theme-bg-url" name="theme-bg-url" value=""><span id="theme-bg-clear" class="button">Clear</span></div> 
+    <div class="clickset">Repeat:
+      <span class="radioset" data-radio="r"><span data-opt="no-repeat" class="radio button">No</span><span data-opt="repeat-x" class="radio button">X only</span><span data-opt="repeat-y" class="radio button">Y only</span> 
+      </span>
+      Attachment: <span id="theme-bg-f" class="button">Fixed</span>
+    </div>
+    <div class="clickset">Position:
+      <span class="radioset" data-radio="h"><span data-opt="left" class="radio button">Left</span><span data-opt="center" class="radio button">Center</span><span data-opt="right" class="radio button">Right</span></span> <span class="sep">|</span> <span class="radioset" data-radio="v"><span data-opt="top" class="radio button">Top</span><span data-opt="center" class="radio button">Center</span><span data-opt="bottom" class="radio button">Bottom</span></span>
+    </div> 
+  </div>
+  <hr>
+  <span id="theme-close" class="button right">Close</span>
+  <span id="theme-clear" class="button right">Clear</span>
+  <span id="theme-save" class="button right">Save</span>
+  <span id="theme-msg"></span>
+</div>
+<menu type="context" id="ctxmenu-main">
+</menu>
+<script type="text/javascript">
+  $(document).ready(function() {
+    $('#topnav').find('.wut').tipsy({gravity: 's'});
+    $('#qf-ok, #qf-clear').tipsy({gravity: 'se'});
+    var opts = {
+    <% if @opts.content_uri %>
+      contentUrl: '<%= @opts.content_uri %>'
+    <% end %>
+    }
+    var fourcat = new $.fourcat(opts);
+    fourcat.loadCatalog(catalog);
+    $('#totop').find('.button').click(function() {
+      $(window).scrollTop($('#header').offset().top);
+    });
+  });
+</script>
+</body>
+</html>

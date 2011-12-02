@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>4chan Board Statistics</title>
+<meta name="description" content="4chan Board Statistics" />
+<meta name="keywords" content="4chan,catalog,catalogue,threads,list,stats,statistics">
+<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+<script type="text/javascript" src="/javascripts/fourcat-stats.js?0"></script>
+<link rel="stylesheet" type="text/css" href="/stylesheets/style.css?0" />
+<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+</head>
+<body>
+<div id="header">
+  <h1 id="title">4chan Board Statistics</h1>
+  <ul id="topnav">
+    <li><a class="button" href="/">Home</a></li>
+    <li class="sep">|</li>
+    <li><a class="button" href="/a/">/a/</a></li>
+    <li><a class="button" href="/jp/">/jp/</a></li>
+    <li class="sep">|</li>
+    <li><a class="wut button" target="_blank" title="4chan" href="http://www.4chan.org/"><img alt="4chan" src="/images/4chan.png" /></a></li>
+  </ul>
+</div>
+
+<div id="stats">
+  <h2>Daily Activity</h2>
+</div>
+
+<script type="text/javascript">
+  var
+    statscnt = document.getElementById('stats'),
+    tiers = [ ['a'], ['jp'] ],
+    stats = <%= @output %>;
+  
+  if (stats) {
+    if (!tiers[0]) {
+      plotGroup(0, statscnt, stats);
+    }
+    else {
+      for (var i = 0, l = tiers.length; i < l; ++i) {
+        plotGroup(i, statscnt, stats, tiers[i]);
+      }
+    }
+  }
+  else {
+    document.getElementById('stats').innerHTML = '<p class="center">No data</p>';
+  }
+</script>
+
+<div class="clear"></div>
+</body>
+</html>
