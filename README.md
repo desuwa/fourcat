@@ -28,45 +28,70 @@ Settings are stored inside the `config.rb` file as a Ruby Hash (minus the wrappi
 
 Some basic options:
 
-> **Symbol**: `page_count`
-  **Type**: Array of Integers
+> **Symbol**: `page_count`  
+  **Type**: Array of Integers  
   **Default**: `[ 16, 2 ]`
-  Maximum number of pages to fetch per run during a refresh cycle.
-  By default, the crawler will fetch the first 16 pages during the first run, then 2 pages during the second run. This is usually fine for moderately slow boards like /tg/ or /tv/. For fast moving boards you will probably need to add a third run: `[ 16, 3, 1]`. Other comatose boards will do fine with `[ 16, 1 ]`
 
-> **Symbol**: `refresh_delay`
-  **Type**: Integer
+Maximum number of pages to fetch per run during a refresh cycle.  
+By default, the crawler will fetch the first 16 pages during the first run, then 2 pages during the second run.  
+This is usually fine for moderately slow boards like /tg/ or /tv/.  
+For fast moving boards you will probably need to add a third run: `[ 16, 3, 1]`.  
+Other comatose boards will do fine with `[ 16, 1 ]`
+
+***
+
+> **Symbol**: `refresh_delay`  
+  **Type**: Integer  
   **Default**: `60`
-  Base refresh delay in seconds. Will be (loosely) adjusted according to the board's speed.
 
-> **Symbol**: `refresh_range`
-  **Type**: Array of Integers
+Base refresh delay in seconds. Will be (loosely) adjusted according to the board's speed.
+
+***
+
+> **Symbol**: `refresh_range`  
+  **Type**: Array of Integers  
   **Default**: `[ 60, 300 ]`
-  Minimum and maximum refresh delays.
 
-> **Symbol**: `request_delay`
-  **Type**: Float
+Minimum and maximum refresh delays.
+
+***
+
+> **Symbol**: `request_delay`  
+  **Type**: Float  
   **Default**: `1.2`
-  Delay, in seconds, between http requests.
 
-> **Symbol**: `teaser_length`
-  **Type**: Integer
+Delay, in seconds, between http requests.
+
+***
+
+> **Symbol**: `teaser_length`  
+  **Type**: Integer  
   **Default**: `200`
-  Excerpt (teaser) character length.
 
-> **Symbol**: `title`
-  **Type**: String
+Excerpt (teaser) character length.
+
+***
+
+> **Symbol**: `title`  
+  **Type**: String  
   **Default**: `/<board's remote slug>/ - Catalog`
-  Board's title. Also used in RSS feeds.
 
-> **Symbol**: `write_rss`
-  **Type**: true, false
-  **Default**: `false`
-  Generate RSS feed.
-  You will need to set the `web_uri` option to point to your catalog's base URL.
+Board's title. Also used in RSS feeds.
 
-> **Symbol**: `stats`
-  **Type**: true, false
+***
+
+> **Symbol**: `write_rss`  
+  **Type**: true, false  
   **Default**: `false`
-  Track statistics.
-  This doesn't generate any HTML, you will need to set up a cron task to run `make_stats.rb` for that.
+
+Generate RSS feed.  
+You will need to set the `web_uri` option to point to your catalog's base URL.
+
+***
+
+> **Symbol**: `stats`  
+  **Type**: true, false  
+  **Default**: `false`
+
+Track statistics.
+This doesn't generate any HTML, you will need to set up a cron task to run `make_stats.rb` for that.
