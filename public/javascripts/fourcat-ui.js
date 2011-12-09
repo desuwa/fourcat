@@ -23,7 +23,8 @@ $.fourcat = function(opts) {
     filterColors: [
       ['#E0B0FF', '#F2F3F4', '#7DF9FF', '#722F37'],
       ['#FBCEB1', '#FFBF00', '#ADFF2F', '#0047AB']
-    ]
+    ],
+    threadsPerPage: 10
   },
   
   catalog = {},
@@ -47,7 +48,7 @@ $.fourcat = function(opts) {
     5: '000000',
     bg: '', r: '', f: '',
     h: '', v: '',
-    notipsy: false, magnify: false
+    notipsy: false, magnify: false, altKey: false
   },
   
   activeTheme = {},
@@ -64,14 +65,22 @@ $.fourcat = function(opts) {
     delayIn: 350
   },
   
+  pinnedThreads = {},
+  
   hiddenThreads = {},
   hiddenThreadsCount = 0,
   
   quickFilterPattern = false,
   
   hasNativeJSON = typeof JSON != 'undefined',
-  hasWebStorage = (typeof localStorage != 'undefined' && localStorage)
-    && (typeof sessionStorage != 'undefined' && sessionStorage),
+  hasWebStorage = (function() {
+    try {
+      localStorage.getItem('filters');
+      return true;
+    } catch(e) {
+      return false;
+    }
+  })(),
   hasCSSTransform = (
     document.body.style.MozTransform !== undefined ||
     document.body.style.WebkitTransform !== undefined ||
@@ -99,8 +108,6 @@ $.fourcat = function(opts) {
   $filteredCount = $('#filtered-count'),
   $filteredLabel = $('#filtered-label'),
   $filterPalette = $('#filter-palette'),
-
-  refreshLabel = $refresh.attr('data-title') + ' ';
   
   $('#qf-ok').click(applyQuickfilter);
   $('#qf-clear').click(toggleQuickfilter);
@@ -109,11 +116,19 @@ $.fourcat = function(opts) {
   
   $('#filters-ctrl').click(showFilters);
   
-  // Context menu for FF8+
-  if ($.browser.mozilla && parseInt($.browser.version) > 7) {
+  // Enterprise Grade polyfilling
+  if (!Array.prototype.indexOf) {
+    Array.prototype.indexOf = function () { return -1; }
+  }
+  
+  if ('HTMLMenuItemElement' in window) {
     $('#ctxmenu-main')
-      .html('<menuitem label="Show hidden threads" id="ctxitem-unhide"></menuitem>');
+      .html(
+        '<menuitem label="Show hidden threads" id="ctxitem-unhide"></menuitem>'
+        + '<menuitem label="Unpin threads" id="ctxitem-unpin"></menuitem>'
+      );
     $('#ctxitem-unhide').click(clearHiddenThreads);
+    $('#ctxitem-unpin').click(clearPinnedThreads);
   }
   
   $(window).resize(centerThreads);
@@ -121,7 +136,8 @@ $.fourcat = function(opts) {
   this.loadCatalog = function(c) {
     catalog = c;
     updateTime();
-    $refresh[0].title = refreshLabel + fc.getDuration(catalog.delay, true);
+    $refresh[0].title =
+      $refresh.attr('data-title') + ' ' + fc.getDuration(catalog.delay, true);
     fc.setProxy(options.proxy, true);
     fc.buildThreads();
     centerThreads();
@@ -132,6 +148,10 @@ $.fourcat = function(opts) {
   function getRegexSpecials() {
     var specials = ['/', '.', '*', '+', '?', '(', ')', '[', ']', '{', '}', '\\' ];
     return new RegExp('(\\' + specials.join('|\\') + ')', 'g');
+  }
+  
+  function getThreadPage(tid) {
+    return 0 | (catalog.order.alt.indexOf(tid) / options.threadsPerPage);
   }
   
   function toggleQuickfilter() {
@@ -178,21 +198,36 @@ $.fourcat = function(opts) {
       $threads[0].onclick = function(e) {
         e = e || window.event;
         var el = (e.target || e.srcElement);
-        if (e.shiftKey && el.className.indexOf('thumb') != -1) {
-          if (!hiddenThreads[catalog.slug]) {
-            hiddenThreads[catalog.slug] = {};
+        if (el.className.indexOf('thumb') != -1) {
+          if ((e.altKey && !activeTheme.altKey)
+            || (e.ctrlKey && activeTheme.altKey)) {
+            if (!pinnedThreads[catalog.slug]) {
+              pinnedThreads[catalog.slug] = {};
+            }
+            var tid = el.getAttribute('data-id');
+            if (pinnedThreads[catalog.slug][tid] >= 0) {
+              delete pinnedThreads[catalog.slug][tid];
+            }
+            else {
+              pinnedThreads[catalog.slug][tid] = catalog.threads[tid].r || 0;
+            }
+            sessionStorage.setItem('pin', JSON.stringify(pinnedThreads));
+            fc.buildThreads();
+            if (e.preventDefault) e.preventDefault();
+            else e.returnValue = false;
           }
-          hiddenThreads[catalog.slug][el.getAttribute('data-id')] = true;
-          sessionStorage.setItem('hide', JSON.stringify(hiddenThreads));
-          el.parentNode.parentNode.style.display = 'none';
-          ++hiddenThreadsCount;
-          $hiddenCount.html(hiddenThreadsCount)
-          $hiddenLabel.show();
-          if (e.preventDefault) {
-            e.preventDefault();
-          }
-          else {
-            e.returnValue = false;
+          else if (e.shiftKey) {
+            if (!hiddenThreads[catalog.slug]) {
+              hiddenThreads[catalog.slug] = {};
+            }
+            hiddenThreads[catalog.slug][el.getAttribute('data-id')] = true;
+            sessionStorage.setItem('hide', JSON.stringify(hiddenThreads));
+            el.parentNode.parentNode.style.display = 'none';
+            ++hiddenThreadsCount;
+            $hiddenCount.html(hiddenThreadsCount)
+            $hiddenLabel.show();
+            if (e.preventDefault) e.preventDefault();
+            else e.returnValue = false;
           }
         }
       };
@@ -207,6 +242,12 @@ $.fourcat = function(opts) {
     }
   }
   
+  function clearPinnedThreads() {
+    pinnedThreads[catalog.slug] = {};
+    sessionStorage.setItem('pin', JSON.stringify(pinnedThreads));
+    fc.buildThreads();
+  }
+  
   function toggleRadio() {
     var $this = $(this);
     if ($this.hasClass('active')) {
@@ -218,18 +259,26 @@ $.fourcat = function(opts) {
     }
   }
   
+  function enableButton($el) {
+    $el.addClass('active');
+    if ($el.hasClass('clickbox')) {
+      $el.html('&#x2714;');
+    }
+  }
+  
+  function disableButton($el) {
+    $el.removeClass('active');
+    if ($el.hasClass('clickbox')) {
+      $el.html('');
+    }
+  }
+  
   function toggleButton($el) {
     if ($el.hasClass('active')) {
-      $el.removeClass('active');
-      if ($el.hasClass('clickbox')) {
-        $el.html('');
-      }
+      disableButton($el);
     }
     else {
-      $el.addClass('active');
-      if ($el.hasClass('clickbox')) {
-        $el.html('&#x2714;');
-      }
+      enableButton($el);
     }
   }
   
@@ -665,33 +714,43 @@ $.fourcat = function(opts) {
       return;
     }
     
-    var customTheme = localStorage.getItem('theme');
-    
-    if (customTheme) {
-      customTheme = JSON.parse(customTheme);
-    }
-    
-    editTheme(customTheme);
-    
-    $('#theme-save').click(saveTheme);
-    $('#theme-clear').click(resetTheme);
-    $('#theme-close').click(closeThemeEditor);
-    
-    $('#theme-bg').find('.radio').click(toggleRadio);
-    $('#theme-bg-f, #theme-notipsy, #theme-magnify')
-      .click(function() { toggleButton($(this)) });
-    $('#theme-bg-clear').click(function() { $('#theme-bg-url').val('') });
-    
     if ($filtersPanel.css('display') == 'none') {
+      var customTheme = localStorage.getItem('theme');
+      
+      if (customTheme) {
+        customTheme = JSON.parse(customTheme);
+      }
+      
+      editTheme(customTheme);
+      
+      $('#theme-save').click(saveTheme);
+      $('#theme-clear').click(resetTheme);
+      $('#theme-close').click(closeThemeEditor);
+      
+      $('#theme-bg').find('.radio').click(toggleRadio);
+      $('#theme-bg-f, #theme-notipsy, #theme-magnify, #theme-altKey')
+        .click(function() { toggleButton($(this)) });
+      $('#theme-bg-clear').click(function() { $('#theme-bg-url').val('') });
+      
       $('#theme-msg').hide();
       $themePanel.show();
     }
   }
   
   function editTheme(customTheme) {
-    var theme, val, radioset;
+    var theme, val, radioset, btn,
+      buttons = ['notipsy', 'magnify', 'altKey'];
     
     theme = $.extend({}, baseTheme, customTheme);
+    
+    for (var i = buttons.length - 1; i >= 0; i--) {
+      if (theme[buttons[i]]) {
+        enableButton($('#theme-' + buttons[i]));
+      }
+      else {
+        disableButton($('#theme-' + buttons[i]));
+      }
+    }
     
     for (var i = 0; i < 6; ++i) {
       val = theme[i];
@@ -727,7 +786,8 @@ $.fourcat = function(opts) {
     $('#theme-close').unbind('click');
     
     $('#theme-bg').find('.radio').unbind('click');
-    $('#theme-bg-f, #theme-notipsy, #theme-magnify, #theme-bg-clear').unbind('click');
+    $('#theme-bg-f, #theme-notipsy, #theme-magnify, #theme-bg-clear, #theme-altKey')
+      .unbind('click');
     $themePanel.hide();
   }
   
@@ -746,9 +806,6 @@ $.fourcat = function(opts) {
     var btn, css = '', bg = [], color, style, dummy;
       
     if (customTheme.notipsy) {
-      if (!(btn = $('#theme-notipsy')).hasClass('active')) {
-        toggleButton(btn);
-      }
       if (customTheme.notipsy != activeTheme.notipsy) {
         $thumbs
           .unbind('mouseenter.tipsy')
@@ -762,9 +819,6 @@ $.fourcat = function(opts) {
     }
     
     if (customTheme.magnify) {
-      if (!(btn = $('#theme-magnify')).hasClass('active')) {
-        toggleButton(btn);
-      }
       if (activeTheme.magnify != customTheme.magnify
           && options.thsize == 'small' && hasCSSTransform) {
         $thumbs
@@ -887,6 +941,10 @@ $.fourcat = function(opts) {
       customTheme.magnify = true;
     }
     
+    if ($('#theme-altKey').hasClass('active')) {
+      customTheme.altKey = true;
+    }
+    
     var clrVal = function(id) {
       return $('#theme-color-' + id)[0].value.toUpperCase();
     };
@@ -956,14 +1014,15 @@ $.fourcat = function(opts) {
       .show().delay(2000).fadeOut(500);
   }
   
-  
-  // Loads manually hidden threads list
+  // Loads data from sessionStorage
   fc.loadSession = function() {
     if (hasWebStorage && hasNativeJSON) {
-      var hide = sessionStorage.getItem('hide');
-      if (hide) {
-        hiddenThreads = JSON.parse(hide);
-      }
+      var
+        hide = sessionStorage.getItem('hide'),
+        pin = sessionStorage.getItem('pin');
+      
+      if (hide) hiddenThreads = JSON.parse(hide);
+      if (pin) pinnedThreads = JSON.parse(pin);
     }
   }
   
@@ -1127,7 +1186,8 @@ $.fourcat = function(opts) {
     }
     
     var
-      id, entry, thread, af, hl, ontop, provider,
+      id, entry, thread, af, hl, onTop, pinned, provider,
+      hasHidden, hasPinned, rDiff, onPage,
       filtered = 0,
       html = '',
       afLength = activeFilters.length;
@@ -1139,31 +1199,36 @@ $.fourcat = function(opts) {
       provider = catalog.server + 'res/';
     }
     
+    hasHidden = !!hiddenThreads[catalog.slug];
+    hasPinned = !!pinnedThreads[catalog.slug];
+    
     hiddenThreadsCount = 0;
     
     threadloop: for (var i = 0; i < catalog.count; ++i) {
       id = catalog.order[options.orderby][i];
       entry = catalog.threads[id];
-      hl = false;
-      ontop = false;
+      hl = onTop = pinned = false;
       if(!quickFilterPattern) {
-        if (hiddenThreads[catalog.slug] && hiddenThreads[catalog.slug][id]) {
+        if (hasHidden && hiddenThreads[catalog.slug][id]) {
           ++hiddenThreadsCount;
           continue;
         }
-        for (var fid = 0; fid < afLength; ++fid) {
-          af = activeFilters[fid];
-          if (
-            (af.type == 0 && entry.teaser.search(af.pattern) != -1)
-            || (af.type == 1 && entry.author && entry.author.search(af.pattern) != -1)
-            ) {
-            if (af.hidden) {
-              ++filtered;
-              continue threadloop;
+        if (hasPinned && pinnedThreads[catalog.slug][id] >= 0) {
+          pinned = onTop = true;
+        }
+        else {
+          for (var fid = 0; fid < afLength; ++fid) {
+            af = activeFilters[fid];
+            if ((af.type == 0 && entry.teaser.search(af.pattern) != -1)
+              || (af.type == 1 && entry.author && entry.author.search(af.pattern) != -1)) {
+              if (af.hidden) {
+                ++filtered;
+                continue threadloop;
+              }
+              hl = af;
+              onTop = !!af.top;
+              break;
             }
-            hl = af;
-            ontop = !!af.top;
-            break;
           }
         }
       }
@@ -1174,22 +1239,41 @@ $.fourcat = function(opts) {
       + '" class="thread"><a target="_blank" href="'
       + provider + id + catalog.ext + '"><img alt="" id="thumb-'
       + id + '" class="thumb';
+      
       if (hl) {
-        if (!ontop) {
-          thread += ' borderblink';
-        }
-        thread += '" style="border:4px solid ' + hl.color + '!important';
+        thread += '" style="border:3px solid ' + hl.color + '!important';
+      }
+      else if (pinned) {
+        thread += '" style="border:3px dashed #F5F5F5 !important';
       }
       thread += '" src="' + options.contentUrl
       + (entry.s ? 'images/' : (catalog.slug + '/src/'))
       + entry.file + '" data-id="' + id + '" /></a>';
+      
+      thread += '<div title="(R)eplies / (I)mages'
+        + (onTop ? ' / (P)age' : '') + '" id="meta-' + id + '" class="meta">';
+      
       if (entry.r) {
-        thread += '<div id="meta-' + id + '" class="meta">r: ' + entry.r;
-        if (entry.i) {
-          thread += ' / i: ' + entry.i;
+        thread += 'r:<b>' + entry.r + '</b>';
+        if (pinned) {
+          rDiff = entry.r - pinnedThreads[catalog.slug][id];
+          thread += ' (' + (rDiff >= 0 ? ('+' + rDiff) : rDiff) + ')';
+          pinnedThreads[catalog.slug][id] = entry.r;
         }
-        thread += '</div>';
+        if (entry.i) {
+          thread += ' / i:<b>' + entry.i + '</b>';
+        }
       }
+      
+      if (onTop && (page = getThreadPage(id)) >= 0) {
+        if (entry.r) {
+          thread += ' / ';
+        }
+        thread += 'p:<b>' + page + '</b>';
+      }
+      
+      thread += '</div>';
+      
       if (entry.teaser) {
         thread += '<div class="teaser';
         if (hl.color) {
@@ -1203,7 +1287,8 @@ $.fourcat = function(opts) {
         }
         thread += '">' + entry.teaser + '</div>';
       }
-      if (ontop) {
+      
+      if (onTop) {
         html = thread + '</div>' + html;
       }
       else {
@@ -1211,6 +1296,10 @@ $.fourcat = function(opts) {
       }
     }
     html += '<div class="clear"></div>';
+    
+    if (hasPinned) {
+      sessionStorage.setItem('pin', JSON.stringify(pinnedThreads));
+    }
     
     $thumbs = $threads.html(html).find('.thumb');
     
@@ -1260,7 +1349,6 @@ $.fourcat = function(opts) {
       thread.date,
       (!options.extended ? thread.teaser : null)
     );
-    
   }
   
   if (opts) {
@@ -1285,11 +1373,7 @@ $.fourcat = function(opts) {
 };
 
 $.fourcat.prototype.getTip = function(author, date, teaser) {
-  var tip = 'Posted ';
-  
-  if (author) {
-    tip += 'by <em>' + author + '</em> '; 
-  }
+  var tip = 'Posted by <em>' + author + '</em> ';
   
   tip += this.getDuration((new Date().getTime() / 1000) - date) + ' ago';
   
@@ -1409,6 +1493,10 @@ released under the MIT license
               left: pos.left + pos.width + this.options.offset
             };
             break;
+        }
+        
+        if (tp.top <= 0) {
+          return;
         }
         
         if (gravity.length == 2) {

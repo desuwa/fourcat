@@ -814,7 +814,7 @@ class Catalog
     
     adjust_speed(missed)
     
-    @log.debug "Missed #{missed} threads, delay is #{@opts.refresh_delay}"
+    @log.debug "Found #{missed} new threads, delay is #{@opts.refresh_delay}"
     @log.debug "Most recent thread is #{@latest_thread}"
     
     if @opts.no_partial && @pages_dropped > 0 &&

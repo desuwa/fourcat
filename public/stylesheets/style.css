@@ -77,6 +77,9 @@ input {
 
 .button,
 .clickbox {
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
   background-color: #555;
 }
 
@@ -551,8 +554,9 @@ p {
   max-height: 251px;
 }
 
-/* Reply and image count indicators */
+/* Replies / images / page indicators */
 .meta {
+  cursor: help;
   font-size: 10px;
   text-transform: uppercase;
 }
