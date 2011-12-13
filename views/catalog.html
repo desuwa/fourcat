@@ -8,7 +8,7 @@
   <% if @opts.write_rss %>
   <link rel="alternate" title="4chan Catalog - /<%= @opts.slug %>/" href="/<%= @opts.slug %>/feed.rss" type="application/rss+xml">
   <% end %>
-  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.0/jquery.min.js"></script>
+  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
   <script type="text/javascript" src="/javascripts/fourcat-ui.js"></script>
   <link rel="stylesheet" type="text/css" href="/stylesheets/style.css">
   <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
@@ -35,6 +35,7 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
     <% end %>
   </ul>
 </div>
+<div id="content">
 <div id="ctrl">
   <div id="info">
     <a id="refresh" data-title="Delay is" href="" class="button">Refresh</a> Updated <span id="updated"></span> ago &mdash; Ordered by <span id="ordered-date">creation date</span><span id="ordered-alt">bump date</span><span id="filtered-label"> &mdash; Filtered threads: <span id="filtered-count"></span></span><span id="hidden-label"> &mdash; Hidden threads: <span id="hidden-count"></span></span>
@@ -52,12 +53,11 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
       <input type="text" id="qf-box" name="qf-box"><span title="Search (Enter)" id="qf-ok" class="button">&#x2714;</span><span title="Cancel (Escape)" id="qf-clear" class="button">&#x2716;</span>
     </span>
   </div>
+  <div class="clear"></div>
 </div>
-<div class="clear"></div>
-<hr>
 <div id="threads"></div>
 <div id="totop"><span class="button">&#8593; Back to Top &#8593;</span></div>
-<hr>
+</div>
 <div id="footer">
   Running <a href="https://github.com/desuwa/fourcat">4cat <%= VERSION %></a> &mdash; Data pulled from <a href="http://www.4chan.org">4chan.org</a>
 </div>
@@ -192,39 +192,20 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
 </div>
 <div id="theme" class="panel">
 <h3>Theme</h3>
-  <hr>
+  <h4>Options</h4>
   <ul class="clickset">
     <li><span id="theme-notipsy" class="clickbox left"></span>&mdash; Disable styled tooltips on thumbnails.</li>
     <li><span id="theme-magnify" class="clickbox left"></span>&mdash; Enable thumbnail magnification in compact mode.</li>
     <li><span id="theme-altKey" class="clickbox left"></span>&mdash; Use <em>Ctrl-click</em> instead of <em>Alt-click</em> to sticky threads.</li>
   </ul>
-  <h4>Colors<a class="minilink right" href="http://kuler.adobe.com/#create/fromacolor" target="_blank">adobe kuler</a></h4>
-  <ul id="theme-colors">
-    <li>#<input id="theme-color-0" class="custom-rgb" type="text" name="theme-color-0" value="">&mdash; Background color.</li>
-    <li>#<input id="theme-color-1" class="custom-rgb" type="text" name="theme-color-1" value="">&mdash; Buttons, menu links and borders.</li>
-    <li>#<input id="theme-color-2" class="custom-rgb" type="text" name="theme-color-2" value="">&mdash; Highlighted buttons and borders.</li>
-    <li>#<input id="theme-color-3" class="custom-rgb" type="text" name="theme-color-3" value="">&mdash; Base text color.</li>
-    <li>#<input id="theme-color-4" class="custom-rgb" type="text" name="theme-color-4" value="">&mdash; Button text and links.</li>
-    <li>#<input id="theme-color-5" class="custom-rgb" type="text" name="theme-color-5" value="">&mdash; Highlighted button text and links.</li>
-  </ul>
+  <h4>Custom CSS</h4>
+  <textarea id="theme-css" rows="4" cols="45"></textarea> 
   <hr>
-  <h4>Background Image</h4>
-  <div id="theme-bg">
-    <div class="clickset">Url: <input type="text" id="theme-bg-url" name="theme-bg-url" value=""><span id="theme-bg-clear" class="button">Clear</span></div> 
-    <div class="clickset">Repeat:
-      <span class="radioset" data-radio="r"><span data-opt="no-repeat" class="radio button">No</span><span data-opt="repeat-x" class="radio button">X only</span><span data-opt="repeat-y" class="radio button">Y only</span> 
-      </span>
-      Attachment: <span id="theme-bg-f" class="button">Fixed</span>
-    </div>
-    <div class="clickset">Position:
-      <span class="radioset" data-radio="h"><span data-opt="left" class="radio button">Left</span><span data-opt="center" class="radio button">Center</span><span data-opt="right" class="radio button">Right</span></span> <span class="sep">|</span> <span class="radioset" data-radio="v"><span data-opt="top" class="radio button">Top</span><span data-opt="center" class="radio button">Center</span><span data-opt="bottom" class="radio button">Bottom</span></span>
-    </div> 
-  </div>
-  <hr>
-  <span id="theme-close" class="button right">Close</span>
-  <span id="theme-clear" class="button right">Clear</span>
-  <span id="theme-save" class="button right">Save</span>
-  <span id="theme-msg"></span>
+  <span class="right">
+    <span id="theme-msg"></span>
+    <span id="theme-save" class="button">Save</span>
+    <span id="theme-close" class="button">Close</span>
+  </span>
 </div>
 <menu type="context" id="ctxmenu-main">
 </menu>

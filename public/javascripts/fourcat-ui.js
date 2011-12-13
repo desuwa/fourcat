@@ -345,8 +345,8 @@ $.fourcat = function(opts) {
       for (var j = 0; j < cols; ++j) {
         $row.append(
           $(document.createElement('td')).append(
-            $(document.createElement('span')).attr('class', 'colorsample')
-            .css('background-color', options.filterColors[i][j])
+            $(document.createElement('span')).attr('class', 'button clickbox')
+            .css('background', options.filterColors[i][j])
             .click(selectFilterColor)
           )
         );
@@ -552,7 +552,7 @@ $.fourcat = function(opts) {
   function filterSetCustomColor() {
     var $this = $(this);
     if ($this.val().search(/^[A-F0-9]{6}$/i) != -1) {
-      $filterRgbOk.css('background-color', '#' + $this.val());
+      $filterRgbOk.css('background', '#' + $this.val());
     }
   }
   
@@ -574,7 +574,7 @@ $.fourcat = function(opts) {
     
     $td = $(document.createElement('td'));
     $span = $(document.createElement('span'))
-      .attr({'data-active': filter.active, 'class': 'clickbox'})
+      .attr({'data-active': filter.active, 'class': 'button clickbox'})
       .click({type: 'active'}, toggleFilter);
       if (filter.active) $span.addClass('active').html('&#x2714;');
     $td.html($span);
@@ -589,22 +589,21 @@ $.fourcat = function(opts) {
     
     $td = $(document.createElement('td'));
     $span = $(document.createElement('span'))
-      .attr({'class': 'colorsample', 'id': 'filter-color-' + id})
+      .attr({'class': 'button clickbox', 'id': 'filter-color-' + id})
       .click({fid: id}, showFilterPalette);
     if (filter.color == '') {
       $span.attr('data-nocolor', '1')
         .html('&#x2215;')
-        .css('background-color', '#555')
     }
     else {
-      $span.css('background-color', filter.color)
+      $span.css('background', filter.color)
     }
     $td.html($span);
     $tr.append($td);
     
     $td = $(document.createElement('td'));
     $span = $(document.createElement('span'))
-      .attr({'data-hide': filter.hidden, 'class': 'clickbox filter-hide'})
+      .attr({'data-hide': filter.hidden, 'class': 'button clickbox filter-hide'})
       .click({type: 'hide', xor: 'top'}, toggleFilter);
       if (filter.hidden) $span.addClass('active').html('&#x2714;');
     $td.html($span);
@@ -612,7 +611,7 @@ $.fourcat = function(opts) {
     
     $td = $(document.createElement('td'));
     $span = $(document.createElement('span'))
-      .attr({'data-top': filter.top, 'class': 'clickbox filter-top'})
+      .attr({'data-top': filter.top, 'class': 'button clickbox filter-top'})
       .click({type: 'top', xor: 'hide'}, toggleFilter);
       if (filter.top) $span.addClass('active').html('&#x2714;');
     $td.html($span);
@@ -620,7 +619,7 @@ $.fourcat = function(opts) {
     
     $td = $(document.createElement('td'))
       .html($(document.createElement('span'))
-        .attr({'data-target': id, 'class': 'clickbox'})
+        .attr({'data-target': id, 'class': 'button clickbox'})
         .html('&#x2716;')
         .click(deleteFilter)
       );
@@ -638,11 +637,11 @@ $.fourcat = function(opts) {
     if (clear === true) {
       $target.attr('data-nocolor', '1')
         .html('&#x2215;')
-        .css('background-color', '#555');
+        .css('background', '');
     }
     else {
       $target.removeAttr('data-nocolor')
-        .html('').css('background-color', $(this).css('background-color'));
+        .html('').css('background', $(this).css('background-color'));
     }
     onFilterChanged();
     closeFilterPalette();
@@ -704,6 +703,7 @@ $.fourcat = function(opts) {
       alert("Your browser doesn't support Local Storage");
       return;
     }
+    
     if (!hasNativeJSON) {
       alert("Your browser doesn't support native JSON");
       return;
@@ -715,78 +715,38 @@ $.fourcat = function(opts) {
     }
     
     if ($filtersPanel.css('display') == 'none') {
-      var customTheme = localStorage.getItem('theme');
+      var
+        buttons = ['notipsy', 'magnify', 'altKey'],
+        theme = localStorage.getItem('theme');
       
-      if (customTheme) {
-        customTheme = JSON.parse(customTheme);
+      theme = theme ? JSON.parse(theme) : {};
+      
+      for (var i = buttons.length - 1; i >= 0; i--) {
+        if (theme[buttons[i]]) {
+          enableButton($('#theme-' + buttons[i]));
+        }
+        else {
+          disableButton($('#theme-' + buttons[i]));
+        }
       }
       
-      editTheme(customTheme);
+      if (theme.css) {
+        document.getElementById('theme-css').value = theme.css;
+      }
+      
+      $('#theme-notipsy, #theme-magnify, #theme-altKey')
+        .click(function() { toggleButton($(this)) });
       
       $('#theme-save').click(saveTheme);
-      $('#theme-clear').click(resetTheme);
       $('#theme-close').click(closeThemeEditor);
-      
-      $('#theme-bg').find('.radio').click(toggleRadio);
-      $('#theme-bg-f, #theme-notipsy, #theme-magnify, #theme-altKey')
-        .click(function() { toggleButton($(this)) });
-      $('#theme-bg-clear').click(function() { $('#theme-bg-url').val('') });
-      
+        
       $('#theme-msg').hide();
       $themePanel.show();
     }
   }
   
-  function editTheme(customTheme) {
-    var theme, val, radioset, btn,
-      buttons = ['notipsy', 'magnify', 'altKey'];
-    
-    theme = $.extend({}, baseTheme, customTheme);
-    
-    for (var i = buttons.length - 1; i >= 0; i--) {
-      if (theme[buttons[i]]) {
-        enableButton($('#theme-' + buttons[i]));
-      }
-      else {
-        disableButton($('#theme-' + buttons[i]));
-      }
-    }
-    
-    for (var i = 0; i < 6; ++i) {
-      val = theme[i];
-      $('#theme-color-' + i)[0].value = val;
-    }
-    
-    $('#theme-bg').find('.radioset').each(function() {
-      radioset = this.getAttribute('data-radio');
-      $(this).children('.radio').each(function() {
-        if (theme[radioset] == this.getAttribute('data-opt')) {
-          $(this).addClass('active');
-        }
-        else {
-          $(this).removeClass('active');
-        }
-      });
-    });
-    
-    var $fixed = $('#theme-bg-f');
-    if (theme.f) {
-      $fixed.addClass('active');
-    }
-    else {
-      $fixed.removeClass('active');
-    }
-    
-    $('#theme-bg-url')[0].value = theme.bg ? theme.bg : '';
-  }
-  
-  function closeThemeEditor() {
-    $('#theme-save').unbind('click');
-    $('#theme-clear').unbind('click');
-    $('#theme-close').unbind('click');
-    
-    $('#theme-bg').find('.radio').unbind('click');
-    $('#theme-bg-f, #theme-notipsy, #theme-magnify, #theme-bg-clear, #theme-altKey')
+  function closeThemeEditor() {    
+    $('#theme-save, #theme-close, #theme-notipsy, #theme-magnify, #theme-altKey')
       .unbind('click');
     $themePanel.hide();
   }
@@ -802,8 +762,8 @@ $.fourcat = function(opts) {
     applyTheme(activeTheme);
   }
   
-  function applyTheme(customTheme, save) {
-    var btn, css = '', bg = [], color, style, dummy;
+  function applyTheme(customTheme) {
+    var style;
       
     if (customTheme.notipsy) {
       if (customTheme.notipsy != activeTheme.notipsy) {
@@ -834,104 +794,31 @@ $.fourcat = function(opts) {
       }
     }
     
-    function checkColor(id) {
-      var c = customTheme[id];
-      if (!c) {
-        delete customTheme[id];
-        return false;
-      }
-      if (c.length == 3) {
-        c = c + c;
-      }
-      if (!c.match(/^[0-9a-f]{6}$/i)) {
-        delete customTheme[id];
-        return false;
-      }
-      return '#' + customTheme[id] + '!important;}';
-    }
-    
-    if (color = checkColor(0)) {
-      css += 'body,.panel{background-color:' + color;
-    }
-    if (color = checkColor(1)) {
-      css += '.button,.clickbox{background-color:' + color;
-      css += '.panel,.thumb{border-color:' + color;
-    }
-    if (color = checkColor(2)) {
-      css += '.button:hover,.active{background-color:' + color;
-      css += '.thumb:hover{border-color:' + color;
-    }
-    if (color = checkColor(3)) {
-      css += 'body{color:' + color;
-      css += 'hr{border-color:' + color;
-    }
-    if (color = checkColor(4)) {
-      css += 'a,.button,.clickbox{color:' + color;
-    }
-    if (color = checkColor(5)) {
-      css += 'a:hover,.button:hover,.clickbox:hover,.active{color:' + color;
-    }
-    
-    if (customTheme.bg) {
-      bg.push('url("' + customTheme.bg + '")');
-      if (customTheme.r) {
-        bg.push(customTheme.r);
-      }
-      if (customTheme.h) {
-        bg.push(customTheme.h);
-      }
-      else {
-        bg.push('left');
-      }
-      if (customTheme.v) {
-        bg.push(customTheme.v);
-      }
-      else {
-        bg.push('top');
-      }
-      if (customTheme.f) {
-        bg.push(customTheme.f);
-      }
-      dummy = document.createElement('div')
-      dummy.style.background = bg.join(' ');
-      css += 'body{background:' + dummy.style.background + ';}';
-    }
-    
-    style = document.getElementById('custom-style');
+    style = document.getElementById('custom-css')
     if (style) {
       (document.head || document.getElementsByTagName('head')[0]).removeChild(style);
     }
     
-    if (css != '') {
+    if (customTheme.css) {
       style = document.createElement('style');
       style.setAttribute('type', 'text/css');
-      style.setAttribute('id', 'custom-style');
+      style.setAttribute('id', 'custom-css');
       
       if (style.styleSheet) {
-        style.styleSheet.cssText = css;
+        style.styleSheet.cssText = customTheme.css;
       }
       else {
-        style.innerHTML = css;
+        style.innerHTML = customTheme.css;
       }
-      
-      (document.head || document.getElementsByTagName('head')[0]).appendChild(style);
-    }
-    
-    if (save === true) {
-      localStorage.removeItem('theme');
-      
-      for (var i in customTheme) {
-        localStorage.setItem('theme', JSON.stringify(customTheme));
-        break;
-      }
-      
-      activeTheme = customTheme;
+      // Allows to add in-page css inside a style tag with 'event-css' as id
+      (document.head || document.getElementsByTagName('head')[0])
+        .insertBefore(style, document.getElementById('event-css'));
     }
   }
   
   // Applies and saves the theme to localStorage
   function saveTheme() {
-    var val, style, rebuild, customTheme = {};
+    var css, style, rebuild, customTheme = {};
     
     if ($('#theme-notipsy').hasClass('active')) {
       customTheme.notipsy = true;
@@ -945,71 +832,23 @@ $.fourcat = function(opts) {
       customTheme.altKey = true;
     }
     
-    var clrVal = function(id) {
-      return $('#theme-color-' + id)[0].value.toUpperCase();
-    };
-    
-    val = clrVal(0);
-    if (val != baseTheme[0]) {
-      customTheme[0] = val;
+    if ((css = document.getElementById('theme-css').value) != '') {
+      customTheme.css = css;
     }
     
-    val = clrVal(1);
-    if (val != baseTheme[1]) {
-      customTheme[1] = val;
-      customTheme[2] = clrVal(2);
-    }
-    else {
-      val = clrVal(2);
-      if (val != baseTheme[2]) {
-        customTheme[2] = val;
-      }
+    applyTheme(customTheme);
+    
+    localStorage.removeItem('theme');
+    
+    for (var i in customTheme) {
+      localStorage.setItem('theme', JSON.stringify(customTheme));
+      break;
     }
     
-    val = clrVal(3);
-    if (val != baseTheme[3]) {
-      customTheme[3] = val;
-    }
-    
-    val = clrVal(4);
-    if (val != baseTheme[4]) {
-      customTheme[4] = val;
-      customTheme[5] = clrVal(5);
-    }
-    else {
-      val = clrVal(5);
-      if (val != baseTheme[5]) {
-        customTheme[5] = val;
-      }
-    }
-    
-    if ((val = document.getElementById('theme-bg-url').value) != '') {
-      customTheme.bg = val;
-      
-      $('#theme-bg').find('.radioset').each(function() {
-        if (val = $(this).children('.active')[0]) {
-          customTheme[this.getAttribute('data-radio')] = val.getAttribute('data-opt');
-        }
-      });
-      
-      if ($('#theme-bg-f').hasClass('active')) {
-        customTheme.f = 'fixed';
-      }
-    }
-    
-    applyTheme(customTheme, true);
+    activeTheme = customTheme;
     
     $('#theme-msg')
       .html('Theme saved')
-      .attr('class', 'msg-ok')
-      .show().delay(2000).fadeOut(500);
-  }
-  
-  // Resets the theme without applying it
-  function resetTheme() {
-    editTheme(baseTheme);
-    $('#theme-msg')
-      .html('Default theme loaded')
       .attr('class', 'msg-ok')
       .show().delay(2000).fadeOut(500);
   }
@@ -1240,11 +1079,11 @@ $.fourcat = function(opts) {
       + provider + id + catalog.ext + '"><img alt="" id="thumb-'
       + id + '" class="thumb';
       
-      if (hl) {
-        thread += '" style="border:3px solid ' + hl.color + '!important';
+      if (hl.color) {
+        thread += ' hl" style="border-color: ' + hl.color;
       }
       else if (pinned) {
-        thread += '" style="border:3px dashed #F5F5F5 !important';
+        thread += ' pinned';
       }
       thread += '" src="' + options.contentUrl
       + (entry.s ? 'images/' : (catalog.slug + '/src/'))
