@@ -21,7 +21,7 @@ $.fourcat = function(opts) {
     filterFullWords: true,
     // Filters color palette
     filterColors: [
-      ['#E0B0FF', '#F2F3F4', '#7DF9FF', '#722F37'],
+      ['#E0B0FF', '#F2F3F4', '#7DF9FF', '#FFFF00'],
       ['#FBCEB1', '#FFBF00', '#ADFF2F', '#0047AB']
     ],
     threadsPerPage: 10
@@ -552,7 +552,10 @@ $.fourcat = function(opts) {
   function filterSetCustomColor() {
     var $this = $(this);
     if ($this.val().search(/^[A-F0-9]{6}$/i) != -1) {
-      $filterRgbOk.css('background', '#' + $this.val());
+      $filterRgbOk.css({ visibility: 'visible', background: '#' + $this.val() });
+    }
+    else {
+      $filterRgbOk.css({ visibility: 'hidden' });
     }
   }
   

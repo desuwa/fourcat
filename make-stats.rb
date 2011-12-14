@@ -25,15 +25,15 @@ stats_files = Dir.glob(stats_dir + '/*-daily')
 output = []
 
 stats_files.each do |filename|
-	output << File.open(filename, 'r') do |f|
-		'"' + File.basename(filename).split('-')[0] + '":' + f.read
-	end
+  output << File.open(filename, 'r') do |f|
+    '"' + File.basename(filename).split('-')[0] + '":' + f.read
+  end
 end
 
 output = output.empty? ? false : "{\n" + output.join(",\n") + "\n}"
 
 html = Erubis::FastEruby.new(
-	File.open(template_file, 'r:UTF-8') { |f| f.read }
+  File.open(template_file, 'r:UTF-8') { |f| f.read }
 ).evaluate(:output => output)
 
 File.open(output_file, 'w:UTF-8') { |f| f.write html }

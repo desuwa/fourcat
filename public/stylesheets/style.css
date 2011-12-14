@@ -418,6 +418,10 @@ input {
   padding-top: 20px;
 }
 
+#filter-rgb-ok {
+  visibility: hidden;
+}
+
 #theme-msg,
 #filters-msg {
   display: none;
