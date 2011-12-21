@@ -38,7 +38,7 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
 <div id="content">
 <div id="ctrl">
   <div id="info">
-    <a id="refresh" data-title="Delay is" href="" class="button">Refresh</a> Updated <span id="updated"></span> ago &mdash; Ordered by <span id="ordered-date">creation date</span><span id="ordered-alt">bump date</span><span id="filtered-label"> &mdash; Filtered threads: <span id="filtered-count"></span></span><span id="hidden-label"> &mdash; Hidden threads: <span id="hidden-count"></span></span>
+    <a id="refresh" data-title="Delay is" href="" class="button">Refresh</a> Updated <span id="updated"></span> ago &mdash; Ordered by <span id="ordered-date">creation date</span><span id="ordered-alt">bump date</span><span id="filtered-label"> &mdash; Filtered threads: <span id="filtered-count"></span></span><span id="hidden-label"> &mdash; Hidden threads: <span id="hidden-count"></span> - <a id="filters-clear-hidden" href="">show</a></span>
   </div>
   <div id="settings">
     <span>Reorder:</span><span data-lbl-date="Date" data-lbl-alt="Natural" id="order-ctrl" class="button"></span>
@@ -141,8 +141,8 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
   <span id="filters-help-open" class="button right">Help</span><h3>Filters and Highlighters</h3>
   <hr>
   <ul>
-    <li>&mdash; You can also hide threads by Shift-clicking the thumbnails.
-    <li>&mdash; Click <a id="filters-clear-hidden" href="">here</a> to unhide all manually hidden threads.</li>
+    <li>&mdash; <em>Shift-click</em> thumbnails to manually hide threads.
+    <li>&mdash; <em>Alt-click</em> to pin threads to the top.
   </ul>
   <hr>
   <table id="filter-table">

@@ -131,10 +131,13 @@ $.fourcat = function(opts) {
     $('#ctxitem-unpin').click(clearPinnedThreads);
   }
   
+  $('#filters-clear-hidden').click(clearHiddenThreads);
+
   $(window).resize(centerThreads);
   
-  this.loadCatalog = function(c) {
+  fc.loadCatalog = function(c) {
     catalog = c;
+    fc.loadStorage();
     updateTime();
     $refresh[0].title =
       $refresh.attr('data-title') + ' ' + fc.getDuration(catalog.delay, true);
@@ -201,27 +204,24 @@ $.fourcat = function(opts) {
         if (el.className.indexOf('thumb') != -1) {
           if ((e.altKey && !activeTheme.altKey)
             || (e.ctrlKey && activeTheme.altKey)) {
-            if (!pinnedThreads[catalog.slug]) {
-              pinnedThreads[catalog.slug] = {};
-            }
             var tid = el.getAttribute('data-id');
-            if (pinnedThreads[catalog.slug][tid] >= 0) {
-              delete pinnedThreads[catalog.slug][tid];
+            if (pinnedThreads[tid] >= 0) {
+              delete pinnedThreads[tid];
             }
             else {
-              pinnedThreads[catalog.slug][tid] = catalog.threads[tid].r || 0;
+              pinnedThreads[tid] = catalog.threads[tid].r || 0;
             }
-            sessionStorage.setItem('pin', JSON.stringify(pinnedThreads));
+            localStorage.setItem('pin-' + catalog.slug, JSON.stringify(pinnedThreads));
             fc.buildThreads();
             if (e.preventDefault) e.preventDefault();
             else e.returnValue = false;
           }
           else if (e.shiftKey) {
-            if (!hiddenThreads[catalog.slug]) {
-              hiddenThreads[catalog.slug] = {};
+            if (!hiddenThreads) {
+              hiddenThreads = {};
             }
-            hiddenThreads[catalog.slug][el.getAttribute('data-id')] = true;
-            sessionStorage.setItem('hide', JSON.stringify(hiddenThreads));
+            hiddenThreads[el.getAttribute('data-id')] = true;
+            localStorage.setItem('hide-' + catalog.slug, JSON.stringify(hiddenThreads));
             el.parentNode.parentNode.style.display = 'none';
             ++hiddenThreadsCount;
             $hiddenCount.html(hiddenThreadsCount)
@@ -235,17 +235,19 @@ $.fourcat = function(opts) {
   }
   
   function clearHiddenThreads() {
-    hiddenThreads[catalog.slug] = {};
-    sessionStorage.setItem('hide', JSON.stringify(hiddenThreads));
+    hiddenThreads = {};
+    localStorage.removeItem('hide-' + catalog.slug);
     if (hiddenThreadsCount > 0) {
       fc.buildThreads();
     }
+    return false;
   }
   
   function clearPinnedThreads() {
-    pinnedThreads[catalog.slug] = {};
-    sessionStorage.setItem('pin', JSON.stringify(pinnedThreads));
+    pinnedThreads = {};
+    localStorage.removeItem('pin-' + catalog.slug);
     fc.buildThreads();
+    return false;
   }
   
   function toggleRadio() {
@@ -394,15 +396,6 @@ $.fourcat = function(opts) {
       $('#filters-help-open').click(function() { $('#filters-protip').show(); });
       $('#filters-help-close').click(function() { $('#filters-protip').hide(); });
       
-      $('#filters-clear-hidden').bind('click', function() {
-        clearHiddenThreads();
-        $('#filters-msg')
-          .html('Done')
-          .attr('class', 'msg-ok')
-          .show().delay(2000)
-          .fadeOut(500);
-        return false;
-      });
       var rawFilters = localStorage.getItem('filters');
       if (rawFilters) {
         rawFilters = $.parseJSON(rawFilters);
@@ -423,7 +416,6 @@ $.fourcat = function(opts) {
     $('#filter-palette-clear').unbind('click');
     $('#filters-help-open').unbind('click');
     $('#filters-help-close').unbind('click');
-    $('#filters-clear-hidden').unbind('click');
     
     $('#filters-msg').hide();
     $filtersPanel.hide();
@@ -856,15 +848,23 @@ $.fourcat = function(opts) {
       .show().delay(2000).fadeOut(500);
   }
   
-  // Loads data from sessionStorage
-  fc.loadSession = function() {
+  // Loads data from webStorage
+  fc.loadStorage = function() {
     if (hasWebStorage && hasNativeJSON) {
-      var
-        hide = sessionStorage.getItem('hide'),
-        pin = sessionStorage.getItem('pin');
+      var i, hide, pin;
       
-      if (hide) hiddenThreads = JSON.parse(hide);
-      if (pin) pinnedThreads = JSON.parse(pin);
+      if (hide = localStorage.getItem('hide-' + catalog.slug)) {
+        hiddenThreads = JSON.parse(hide);
+      }
+      
+      if (pin = localStorage.getItem('pin-' + catalog.slug)) {
+        pinnedThreads = JSON.parse(pin);
+        for (i in pinnedThreads) {
+          if (!catalog.threads[i]) {
+            delete pinnedThreads[i];
+          }
+        }
+      }
     }
   }
   
@@ -1014,8 +1014,12 @@ $.fourcat = function(opts) {
   });
   
   fc.buildThreads = function() {
+    var
+      tip, i, j, fid, id, entry, thread, af, hl, onTop, pinned, provider,
+      rDiff, onPage, filtered = 0, html = '', afLength = activeFilters.length;
+    
     if ($threads[0].hasChildNodes()) {
-      var tip = document.getElementById('th-tip');
+      tip = document.getElementById('th-tip');
       if (tip) {
         document.body.removeChild(tip);
       }
@@ -1027,13 +1031,6 @@ $.fourcat = function(opts) {
       return;
     }
     
-    var
-      id, entry, thread, af, hl, onTop, pinned, provider,
-      hasHidden, hasPinned, rDiff, onPage,
-      filtered = 0,
-      html = '',
-      afLength = activeFilters.length;
-    
     if (options.proxy && catalog.proxy) {
       provider = catalog.proxy;
     }
@@ -1041,25 +1038,22 @@ $.fourcat = function(opts) {
       provider = catalog.server + 'res/';
     }
     
-    hasHidden = !!hiddenThreads[catalog.slug];
-    hasPinned = !!pinnedThreads[catalog.slug];
-    
     hiddenThreadsCount = 0;
     
-    threadloop: for (var i = 0; i < catalog.count; ++i) {
+    threadloop: for (i = 0; i < catalog.count; ++i) {
       id = catalog.order[options.orderby][i];
       entry = catalog.threads[id];
       hl = onTop = pinned = false;
       if(!quickFilterPattern) {
-        if (hasHidden && hiddenThreads[catalog.slug][id]) {
+        if (hiddenThreads[id]) {
           ++hiddenThreadsCount;
           continue;
         }
-        if (hasPinned && pinnedThreads[catalog.slug][id] >= 0) {
+        if (pinnedThreads[id] >= 0) {
           pinned = onTop = true;
         }
         else {
-          for (var fid = 0; fid < afLength; ++fid) {
+          for (fid = 0; fid < afLength; ++fid) {
             af = activeFilters[fid];
             if ((af.type == 0 && entry.teaser.search(af.pattern) != -1)
               || (af.type == 1 && entry.author && entry.author.search(af.pattern) != -1)) {
@@ -1098,9 +1092,14 @@ $.fourcat = function(opts) {
       if (entry.r) {
         thread += 'r:<b>' + entry.r + '</b>';
         if (pinned) {
-          rDiff = entry.r - pinnedThreads[catalog.slug][id];
-          thread += ' (' + (rDiff >= 0 ? ('+' + rDiff) : rDiff) + ')';
-          pinnedThreads[catalog.slug][id] = entry.r;
+          rDiff = entry.r - pinnedThreads[id];
+          if (rDiff > 0) {
+            thread += ' (+' + rDiff + ')';
+            pinnedThreads[id] = entry.r;
+          }
+          else {
+            thread += '(+0)';
+          }
         }
         if (entry.i) {
           thread += ' / i:<b>' + entry.i + '</b>';
@@ -1139,8 +1138,9 @@ $.fourcat = function(opts) {
     }
     html += '<div class="clear"></div>';
     
-    if (hasPinned) {
-      sessionStorage.setItem('pin', JSON.stringify(pinnedThreads));
+    for (j in pinnedThreads) {
+      localStorage.setItem('pin-' + catalog.slug, JSON.stringify(pinnedThreads));
+      break;
     }
     
     $thumbs = $threads.html(html).find('.thumb');
@@ -1205,7 +1205,6 @@ $.fourcat = function(opts) {
   bindGlobalShortcuts();
   
   fc.loadSettings();
-  fc.loadSession();
   fc.loadTheme();
   fc.loadFilters();
   

@@ -78,13 +78,20 @@ input {
   border: none;
   margin: 0px 2px;
   padding: 2px 4px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
   background-color: #555;
+  background-image: -moz-linear-gradient(center top, #636363, #525252);
+  background-image: -webkit-linear-gradient(top, #636363, #525252);
+  background-image: -o-linear-gradient(top, #636363, #525252);
   white-space: nowrap;
 }
 
 .button:hover {
   color: #000;
   background-color: #FFA500;
+  background-image: -moz-linear-gradient(center top, #ffa500, #e89700);
+  background-image: -webkit-linear-gradient(top, #ffa500, #e89700);
+  background-image: -o-linear-gradient(top, #ffa500, #e89700);
 }
 
 .clickbox {
@@ -99,6 +106,9 @@ input {
 .active {
   color: #000 !important;
   background-color: #FFA500 !important;
+  background-image: -moz-linear-gradient(center top, #ffa500, #e89700) !important;
+  background-image: -webkit-linear-gradient(top, #ffa500, #e89700) !important;
+  background-image: -o-linear-gradient(top, #ffa500, #e89700) !important;
 }
 
 /* Input box for custom colors */
@@ -491,6 +501,9 @@ input {
   display: block;
   margin: auto;
   z-index: 2;
+  -moz-transition: border-color 0.2s ease 0s;
+  -webkit-transition: border-color 0.2s ease 0s;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 }
 
 .thumb:hover {
