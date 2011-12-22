@@ -1,9 +1,7 @@
 (function() {
   
   var boards = {
-    'a': true, 'jp': true, 'tg': true, 'lit': true,
-    'sp': true, 'g': true, 'co': true, 'm': true,
-    'mu': true, 'tv': true, 'v': true
+    'a': true, 'jp': true
   },
   
   origins = {
