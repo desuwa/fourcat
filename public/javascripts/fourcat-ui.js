@@ -850,11 +850,11 @@ $.fourcat = function(opts) {
   
   // Loads threads from local storage
   function loadThreadList(key) {
-    var i, threads, mod = false;
+    var i, threads, mod = false, ft = catalog.order.date[0];
     if (threads = localStorage.getItem(key)) {
       threads = JSON.parse(threads);
       for (i in threads) {
-        if (!catalog.threads[i]) {
+        if (!catalog.threads[i] && i < ft) {
           delete threads[i];
           mod = true;
         }
