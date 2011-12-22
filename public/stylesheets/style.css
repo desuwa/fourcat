@@ -524,6 +524,9 @@ input {
 /* Scaled thumbnail when hovered in compact mode */
 .scaled {
   position: absolute;
+  -moz-transition-property: none;
+  -webkit-transition-property: none;
+  box-shadow: none;
   -moz-transform: scale(1.8);
   -webkit-transform: scale(1.8);
   -ms-transform: scale(1.8);
