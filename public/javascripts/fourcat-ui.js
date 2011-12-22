@@ -848,23 +848,31 @@ $.fourcat = function(opts) {
       .show().delay(2000).fadeOut(500);
   }
   
+  // Loads threads from local storage
+  function loadThreadList(key) {
+    var i, threads, mod = false;
+    if (threads = localStorage.getItem(key)) {
+      threads = JSON.parse(threads);
+      for (i in threads) {
+        if (!catalog.threads[i]) {
+          delete threads[i];
+          mod = true;
+        }
+      }
+      for (i in threads) {
+        if (mod) { localStorage.setItem(key, JSON.stringify(threads)); }
+        return threads;
+      }
+      localStorage.removeItem(key);
+    }
+    return {};
+  }
+  
   // Loads data from webStorage
   fc.loadStorage = function() {
     if (hasWebStorage && hasNativeJSON) {
-      var i, hide, pin;
-      
-      if (hide = localStorage.getItem('hide-' + catalog.slug)) {
-        hiddenThreads = JSON.parse(hide);
-      }
-      
-      if (pin = localStorage.getItem('pin-' + catalog.slug)) {
-        pinnedThreads = JSON.parse(pin);
-        for (i in pinnedThreads) {
-          if (!catalog.threads[i]) {
-            delete pinnedThreads[i];
-          }
-        }
-      }
+      hiddenThreads = loadThreadList('hide-' + catalog.slug);
+      pinnedThreads = loadThreadList('pin-' + catalog.slug);
     }
   }
   
