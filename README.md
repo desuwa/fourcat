@@ -11,7 +11,7 @@ Thread catalog generator for 4chan and other futaba style boards.
 - A webserver, anything that can serve static files is fine.
 
 ## Usage
-To manually refresh a board use `refresh.rb <slug>` 
+To manually refresh a board use `refresh.rb <slug>`  
 Example: `./refresh.rb jp` will generate a catalog for /jp/ under `./public/jp/`  
 Use this to test your installation or, if you host multiple boards, to pre-fetch thumbnails and minimize hammering during the first run.
 
@@ -20,11 +20,11 @@ The script will start, kill and reload worker threads according to the settings 
 Pass `-gentle <seconds>` as argument to add a delay betwen the start of each worker thread.
 
 To run the crawler in the background use `daemon.rb`  
-You can pass additional arguments to the daemonized script by separating them with two *hyphens*: `daemon.rb start -- -gentle 20` 
+You can pass additional arguments to the daemonized script by separating them with two *hyphens*: `daemon.rb start -- -gentle 20`  
 To reload the configuration file, send a `SIGHUP` to the process, or use `daemon.rb reload`. Only board specific settings will be reloaded.
 
 ## Settings
-Settings are stored inside the `config.rb` file as a Ruby Hash (minus the wrapping curly brackets). 
+Settings are stored inside the `config.rb` file as a Ruby Hash (minus the wrapping curly brackets).  
 Check `fourcat.rb` for the complete list of available options.
 
 Some basic options:

@@ -5,7 +5,7 @@
   },
   
   origins = {
-    'http://board.4chan.org': true,
+    'http://boards.4chan.org': true,
     'http://sys.4chan.org': true
   },
   
@@ -85,6 +85,7 @@
           methods[commands[i].type](commands[i], msg.origin);
         }
       }
+      sendMsg(msg.origin, 'ok', 'Done');
     }
     catch (e) {
       return sendMsg(msg.origin, 'error', e.message || e);
