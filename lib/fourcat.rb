@@ -14,7 +14,7 @@ module Fourcat
 
 class Catalog
   
-  VERSION     = '0.9.2'
+  VERSION     = '0.9.3'
   
   TAG_REGEX   = /<[^>]+>/i
   PB_REGEX    = /[\u2028\u2029]/
@@ -45,6 +45,7 @@ class Catalog
     :web_uri          => nil,
     :content_uri      => nil,
     :user_agent       => "4cat/#{VERSION}",
+    :spoiler_text     => '*spoiler*',
     :threads_pattern  => Regexp.new(
       '<img src="?(http://[^\s]+/([^\s"]+))?[^<]+</a>' <<
       '<a name="0"></a>\s+<input type=checkbox name="[0-9]+" value=delete>' <<
@@ -64,6 +65,7 @@ class Catalog
     :pages_pattern    => Regexp.new(
       '\[<a href="[0-9]{1,2}">([0-9]{1,2})</a>\] '
     ),
+    :spoiler_pattern  => /<span class="spoiler".*?<\/span>/i,
     :datemap =>
     {
       :year   => 2,
@@ -188,10 +190,15 @@ class Catalog
   # @option opts [String] user_agent
   #   User Agent string, defaults to '4cat/{VERSION}'
   #
+  # @option opts [String, false] spoiler_text
+  #   Replacement string for spoiler tags or 'false' to disable.
+  #   Defaults to '*spoiler*'.
+  #
   # @option opts [Regexp] threads_pattern Threads regex
   # @option opts [Regexp] replies_pattern Omitted replies and images regex
   # @option opts [Regexp] date_pattern    Date regex
   # @option opts [Regexp] pages_pattern   Page navigation menu regex
+  # @option opts [Regexp] spoiler_pattern Spoiler tag regex
   # @option opts [Hash]   datemap         Parens match map for the date pattern
   # @option opts [Hash]   matchmap        Parens match map for threads pattern
   #
@@ -884,7 +891,11 @@ class Catalog
       
       # Comment [String]
       if t[mm[:body]]
-        thread[:body] = t[mm[:body]].gsub(LB_REGEX, "\n")
+        thread[:body] = t[mm[:body]]
+        if @opts.spoiler_text
+          thread[:body].gsub!(@opts.spoiler_pattern, @opts.spoiler_text)
+        end
+        thread[:body].gsub!(LB_REGEX, "\n")
         thread[:body].gsub!(TAG_REGEX, '')
         # Teaser [String, nil]
         if @opts.teaser_length > 0
