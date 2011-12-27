@@ -402,7 +402,7 @@ input {
 }
 
 #filter-list input {
-  width: 210px;
+  width: 190px;
 }
 
 #filter-table {
@@ -412,7 +412,7 @@ input {
 #filter-table th {
   font-weight: bold;
   font-size: 11px;
-  min-width: 25px;
+  min-width: 28px;
 }
 
 #filter-table th,

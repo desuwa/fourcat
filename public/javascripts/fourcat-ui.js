@@ -36,25 +36,13 @@ $.fourcat = function(opts) {
     pattern: '',
     color: '',
     hidden: 0,
-    top: 0
-  },
-  
-  baseTheme = {
-    0: '8C92AC',
-    1: '555555',
-    2: 'FFA500',
-    3: '000000',
-    4: 'FFFFFF',
-    5: '000000',
-    bg: '', r: '', f: '',
-    h: '', v: '',
-    notipsy: false, magnify: false, altKey: false
+    top: 0,
+    hits: 0
   },
   
   activeTheme = {},
   
-  activeFilters = [],
-  filtersChanged = false,
+  activeFilters = {},
   
   // Tooltip options
   tipopts = {
@@ -163,7 +151,7 @@ $.fourcat = function(opts) {
       clearQuickfilter();
       qfcnt.style.display = 'none';
       $qfCtrl.removeClass('active');
-      $('#qf-box').unbind('keyup').unbind('keydown');
+      $('#qf-box').off('keyup').off('keydown');
     }
     else {
       qfcnt.style.display = 'inline';
@@ -396,26 +384,27 @@ $.fourcat = function(opts) {
       $('#filters-help-open').click(function() { $('#filters-protip').show(); });
       $('#filters-help-close').click(function() { $('#filters-protip').hide(); });
       
-      var rawFilters = localStorage.getItem('filters');
+      var rawFilters = localStorage.getItem('filters'), filterId = 0;
       if (rawFilters) {
         rawFilters = $.parseJSON(rawFilters);
         for (var i in rawFilters) {
-          $filterList.append(buildFilter(rawFilters[i]));
+          $filterList.append(buildFilter(rawFilters[i], filterId));
+          ++filterId;
         }
+        updateFilterHitCount();
       }
       $filtersPanel.show();
-      filtersChanged = false;
     }
   }
   
   function closeFilters() {
-    $('#filters-close').unbind('click');
-    $('#filters-add').unbind('click');
-    $('#filters-save').unbind('click');
-    $('#filter-palette-close').unbind('click');
-    $('#filter-palette-clear').unbind('click');
-    $('#filters-help-open').unbind('click');
-    $('#filters-help-close').unbind('click');
+    $('#filters-close').off('click');
+    $('#filters-add').off('click');
+    $('#filters-save').off('click');
+    $('#filter-palette-close').off('click');
+    $('#filter-palette-clear').off('click');
+    $('#filters-help-open').off('click');
+    $('#filters-help-close').off('click');
     
     $('#filters-msg').hide();
     $filtersPanel.hide();
@@ -426,7 +415,7 @@ $.fourcat = function(opts) {
   fc.loadFilters = function() {
     if (!hasWebStorage) return;
     
-    activeFilters = [];
+    activeFilters = {};
     
     var rawFilters = localStorage.getItem('filters');
     if (!rawFilters) return;
@@ -483,16 +472,16 @@ $.fourcat = function(opts) {
             }
           }
           //console.log('Resulting regex: ' + pattern);
-          activeFilters.push( {
-              type: type,
-              pattern: pattern,
-              fid: fid,
-              hidden: rawFilters[fid].hidden,
-              color: rawFilters[fid].color,
-              bright: rawFilters[fid].bright,
-              top: rawFilters[fid].top
-            }
-          );
+          activeFilters[fid] = {
+            type: type,
+            pattern: pattern,
+            fid: fid,
+            hidden: rawFilters[fid].hidden,
+            color: rawFilters[fid].color,
+            bright: rawFilters[fid].bright,
+            top: rawFilters[fid].top,
+            hits: 0
+          };
         }
       }
     }
@@ -502,7 +491,8 @@ $.fourcat = function(opts) {
   }
   
   function saveFilters() {
-    var rawFilters = {};
+    var rawFilters = {}, $msg = $('#filters-msg');
+    
     $filterList.children('tr').each(function(i, e) {
       var
         $cols = $(e).children('td'),
@@ -521,24 +511,19 @@ $.fourcat = function(opts) {
       }
       rawFilters[i] = f;
     });
+    
     if (rawFilters['0']) {
       localStorage.setItem('filters', JSON.stringify(rawFilters));
     }
     else {
       localStorage.removeItem('filters');
     }
-    var $msg = $('#filters-msg');
-    if (filtersChanged) {
-      filtersChanged = false;
-      $msg.html('Filters saved')
-        .attr('class', 'msg-ok').show().delay(2000).fadeOut(500);
-      fc.loadFilters();
-      fc.buildThreads();
-    }
-    else {
-      $msg.html('No changes')
-        .attr('class', 'msg-error').show().delay(2000).fadeOut(500);
-    }
+    
+    $msg.html('Done').attr('class', 'msg-ok').show().delay(2000).fadeOut(500);
+    
+    fc.loadFilters();
+    fc.buildThreads();
+    updateFilterHitCount();
   }
   
   function filterSetCustomColor() {
@@ -555,76 +540,94 @@ $.fourcat = function(opts) {
     $filterPalette.hide();
   }
   
-  function buildFilter(filter) {
-    var $td, $span, $tr, $tmp, id;
-    filter = $.extend({}, baseFilter, filter);
-    $tmp = $filterList.children('tr');
-    if ($tmp.length == 0) {
-      id = 0;
+  function buildFilter(filter, id) {
+    var td, span, tr, input, cls;
+    
+    tr = document.createElement('tr');
+    tr.id = 'filter-' + id;
+    
+    // On
+    td = document.createElement('td');
+    span = document.createElement('span');
+    span.setAttribute('data-active', filter.active);
+    cls = 'button clickbox';
+    if (filter.active) {
+      cls += ' active';
+      span.innerHTML = '&#x2714;';
+    }
+    span.setAttribute('class', cls);
+    $(span).on('click', {type: 'active'}, toggleFilter);
+    td.appendChild(span);
+    tr.appendChild(td);
+    
+    // Pattern
+    td = document.createElement('td');
+    input = document.createElement('input');
+    input.type = 'text';
+    input.value = filter.pattern;
+    td.appendChild(input);
+    tr.appendChild(td);
+    
+    // Color
+    td = document.createElement('td');
+    span = document.createElement('span');
+    span.id = 'filter-color-' + id
+    span.setAttribute('class', 'button clickbox');
+    if (!filter.color) {
+      span.setAttribute('data-nocolor', '1');
+      span.innerHTML = '&#x2215;';
     }
     else {
-      id = parseInt($tmp.last().attr('id').split('-')[1]) + 1;
+      span.style.background = filter.color;
     }
-    $tr = $(document.createElement('tr')).attr('id', 'filter-' + id);
+    $(span).on('click', {fid: id}, showFilterPalette);
+    td.appendChild(span);
+    tr.appendChild(td);
     
-    $td = $(document.createElement('td'));
-    $span = $(document.createElement('span'))
-      .attr({'data-active': filter.active, 'class': 'button clickbox'})
-      .click({type: 'active'}, toggleFilter);
-      if (filter.active) $span.addClass('active').html('&#x2714;');
-    $td.html($span);
-    $tr.append($td);
-    
-    $td = $(document.createElement('td'))
-      .html($(document.createElement('input'))
-        .attr({'type': 'text', 'value': filter.pattern})
-        .change(onFilterChanged)
-      );
-    $tr.append($td);
-    
-    $td = $(document.createElement('td'));
-    $span = $(document.createElement('span'))
-      .attr({'class': 'button clickbox', 'id': 'filter-color-' + id})
-      .click({fid: id}, showFilterPalette);
-    if (filter.color == '') {
-      $span.attr('data-nocolor', '1')
-        .html('&#x2215;')
+    // Hide
+    td = document.createElement('td');
+    span = document.createElement('span');
+    cls = 'button clickbox filter-hide';
+    span.setAttribute('data-hide', filter.hidden);
+    if (filter.hidden) {
+      cls += ' active';
+      span.innerHTML = '&#x2714;';
     }
-    else {
-      $span.css('background', filter.color)
+    span.setAttribute('class', cls);
+    $(span).on('click', {type: 'hide', xor: 'top'}, toggleFilter);
+    td.appendChild(span);
+    tr.appendChild(td);
+    
+    // Top
+    td = document.createElement('td');
+    span = document.createElement('span');
+    cls = 'button clickbox filter-top';
+    span.setAttribute('data-top', filter.top);
+    if (filter.top) {
+      cls += ' active';
+      span.innerHTML = '&#x2714;';
     }
-    $td.html($span);
-    $tr.append($td);
+    span.setAttribute('class', cls);
+    $(span).on('click', {type: 'top', xor: 'hide'}, toggleFilter);
+    td.appendChild(span);
+    tr.appendChild(td);
     
-    $td = $(document.createElement('td'));
-    $span = $(document.createElement('span'))
-      .attr({'data-hide': filter.hidden, 'class': 'button clickbox filter-hide'})
-      .click({type: 'hide', xor: 'top'}, toggleFilter);
-      if (filter.hidden) $span.addClass('active').html('&#x2714;');
-    $td.html($span);
-    $tr.append($td);
+    // Del
+    td = document.createElement('td');
+    span = document.createElement('span');
+    span.setAttribute('data-target', id);
+    span.setAttribute('class', 'button clickbox');
+    span.innerHTML = '&#x2716;';
+    $(span).on('click', deleteFilter)
+    td.appendChild(span);
+    tr.appendChild(td);
     
-    $td = $(document.createElement('td'));
-    $span = $(document.createElement('span'))
-      .attr({'data-top': filter.top, 'class': 'button clickbox filter-top'})
-      .click({type: 'top', xor: 'hide'}, toggleFilter);
-      if (filter.top) $span.addClass('active').html('&#x2714;');
-    $td.html($span);
-    $tr.append($td);
+    // Match count
+    td = document.createElement('td');
+    td.id = 'fhc-' + id;
+    tr.appendChild(td);
     
-    $td = $(document.createElement('td'))
-      .html($(document.createElement('span'))
-        .attr({'data-target': id, 'class': 'button clickbox'})
-        .html('&#x2716;')
-        .click(deleteFilter)
-      );
-    $tr.append($td);
-    
-    return $tr;
-  }
-  
-  function onFilterChanged() {
-    if (!filtersChanged) filtersChanged = true;
+    return tr;
   }
   
   function selectFilterColor(clear) {
@@ -638,7 +641,6 @@ $.fourcat = function(opts) {
       $target.removeAttr('data-nocolor')
         .html('').css('background', $(this).css('background-color'));
     }
-    onFilterChanged();
     closeFilterPalette();
   }
   
@@ -662,13 +664,21 @@ $.fourcat = function(opts) {
   }
   
   function addEmptyFilter() {
-    $filterList.append(buildFilter);
-    onFilterChanged();
+    $filterList[0].appendChild(buildFilter(baseFilter, getNextFilterId()));
+  }
+  
+  function getNextFilterId() {
+    var len, tmp = $filterList[0].getElementsByTagName('tr');
+    if (!(len = tmp.length)) {
+      return 0;
+    }
+    else {
+      return tmp[len - 1].getAttribute('id').slice(7) + 1;
+    }
   }
   
   function deleteFilter() {
     $('#filter-' + $(this).attr('data-target')).remove();
-    onFilterChanged();
   }
   
   function toggleFilter(e) {
@@ -690,7 +700,14 @@ $.fourcat = function(opts) {
           .attr('data-' + e.data.xor, '1').addClass('active').html('&#x2714;');
       }
     }
-    onFilterChanged();
+  }
+  
+  function updateFilterHitCount() {
+    var i, rows = $filterList[0].getElementsByTagName('tr');
+    for (i = 0, j = rows.length; i < j; ++i) {
+      document.getElementById('fhc-' + rows[i].id.slice(7))
+        .innerHTML = activeFilters[i] ? '&times;' + activeFilters[i].hits : '';
+    }
   }
   
   function showThemeEditor() {
@@ -742,7 +759,7 @@ $.fourcat = function(opts) {
   
   function closeThemeEditor() {    
     $('#theme-save, #theme-close, #theme-notipsy, #theme-magnify, #theme-altKey')
-      .unbind('click');
+      .off('click');
     $themePanel.hide();
   }
   
@@ -763,8 +780,8 @@ $.fourcat = function(opts) {
     if (customTheme.notipsy) {
       if (customTheme.notipsy != activeTheme.notipsy) {
         $thumbs
-          .unbind('mouseenter.tipsy')
-          .unbind('mouseleave.tipsy');
+          .off('mouseenter.tipsy')
+          .off('mouseleave.tipsy');
       }
     }
     else {
@@ -777,15 +794,15 @@ $.fourcat = function(opts) {
       if (activeTheme.magnify != customTheme.magnify
           && options.thsize == 'small' && hasCSSTransform) {
         $thumbs
-          .bind('mouseenter.scale', onThumbMouseIn)
-          .bind('mouseleave.scale', onThumbMouseOut);
+          .on('mouseenter.scale', onThumbMouseIn)
+          .on('mouseleave.scale', onThumbMouseOut);
       }
     }
     else {
       if (activeTheme.magnify != customTheme.magnify && hasCSSTransform) {
         $thumbs
-          .unbind('mouseenter.scale')
-          .unbind('mouseleave.scale');
+          .off('mouseenter.scale')
+          .off('mouseleave.scale');
       }
     }
     
@@ -922,8 +939,8 @@ $.fourcat = function(opts) {
       cls = 'small';
       if ($thumbs && hasCSSTransform && activeTheme.magnify) {
         $thumbs
-          .bind('mouseenter.scale', onThumbMouseIn)
-          .bind('mouseleave.scale', onThumbMouseOut);
+          .on('mouseenter.scale', onThumbMouseIn)
+          .on('mouseleave.scale', onThumbMouseOut);
       }
       options.thsize = 'small';
     }
@@ -932,8 +949,8 @@ $.fourcat = function(opts) {
       cls = 'large';
       if ($thumbs && hasCSSTransform && activeTheme.magnify) {
         $thumbs
-          .unbind('mouseenter.scale')
-          .unbind('mouseleave.scale');
+          .off('mouseenter.scale')
+          .off('mouseleave.scale');
       }
       options.thsize = 'large';
     }
@@ -1024,7 +1041,7 @@ $.fourcat = function(opts) {
   fc.buildThreads = function() {
     var
       tip, i, j, fid, id, entry, thread, af, hl, onTop, pinned, provider,
-      rDiff, onPage, filtered = 0, html = '', afLength = activeFilters.length;
+      rDiff, onPage, filtered = 0, html = '';
     
     if ($threads[0].hasChildNodes()) {
       tip = document.getElementById('th-tip');
@@ -1061,16 +1078,18 @@ $.fourcat = function(opts) {
           pinned = onTop = true;
         }
         else {
-          for (fid = 0; fid < afLength; ++fid) {
+          for (fid in activeFilters) {
             af = activeFilters[fid];
             if ((af.type == 0 && entry.teaser.search(af.pattern) != -1)
               || (af.type == 1 && entry.author && entry.author.search(af.pattern) != -1)) {
               if (af.hidden) {
                 ++filtered;
+                af.hits += 1;
                 continue threadloop;
               }
               hl = af;
               onTop = !!af.top;
+              af.hits += 1;
               break;
             }
           }
@@ -1155,8 +1174,8 @@ $.fourcat = function(opts) {
     
     if (options.thsize == 'small' && hasCSSTransform && activeTheme.magnify) {
       $thumbs
-        .bind('mouseenter.scale', onThumbMouseIn)
-        .bind('mouseleave.scale', onThumbMouseOut);
+        .on('mouseenter.scale', onThumbMouseIn)
+        .on('mouseleave.scale', onThumbMouseOut);
     }
     
     if (!activeTheme.notipsy) {
@@ -1203,7 +1222,6 @@ $.fourcat = function(opts) {
   
   if (opts) {
     $.extend(options, defaults, opts);
-    $.extend(baseTheme, opts.baseTheme);
   }
   else {
     options = defaults;
@@ -1471,13 +1489,13 @@ released under the MIT license
       }
     };
     
-    if (!options.live) this.each(function() { get(this); });
+    this.each(function() { get(this); });
     
     if (options.trigger != 'manual') {
-      var binder   = options.live ? 'live' : 'bind',
+      var
         eventIn  = options.trigger == 'hover' ? 'mouseenter.tipsy' : 'focus',
         eventOut = options.trigger == 'hover' ? 'mouseleave.tipsy' : 'blur';
-      this[binder](eventIn, enter)[binder](eventOut, leave);
+      this.on(eventIn, enter).on(eventOut, leave);
     }
     
     return this;
@@ -1493,7 +1511,6 @@ released under the MIT license
     fallback: '',
     gravity: 's',
     html: false,
-    live: false,
     offset: 0,
     opacity: 1.0,
     title: 'title',
