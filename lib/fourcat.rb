@@ -481,12 +481,12 @@ class Catalog
         if resp.code == '404'
           raise HTTPNotFound, "Not Found #{http.address}#{path}"
         else
-          raise HTTPError, "HTTP #{resp.code} for #{http.address}#{path}"
+          raise HTTPError, "HTTP #{resp.code}"
         end
       end
-    rescue HTTPError => e
+    rescue HTTPNotFound => e
       raise e
-    rescue StandardError => e
+    rescue HTTPError, StandardError => e
       if try > @opts.retries
         raise "Skipping after #{e.message}: #{http.address}#{path}"
       end
