@@ -551,11 +551,15 @@ input {
 .meta {
   cursor: help;
   font-size: 10px;
+  line-height: 8px;
+  margin-top: 3px;
   text-transform: uppercase;
 }
 
 /* Teaser, hidden */
 .teaser {
+  line-height: 14px;
+  margin-top: 3px;
   display: none;
 }
 
@@ -563,6 +567,20 @@ input {
 .extended-small .teaser,
 .extended-large .teaser {
   display: block;
+}
+
+/* spoilers */
+.teaser s {
+  text-decoration: none;
+  background-color: #a1a8c7;
+  color: #a1a8c7;
+  text-shadow: none;
+}
+
+.teaser s:hover {
+  background-color: transparent;
+  color: inherit;
+  text-shadow: inherit;
 }
 
 /***************************************************************/

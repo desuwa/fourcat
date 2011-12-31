@@ -95,7 +95,8 @@ $.fourcat = function(opts) {
   $filterRgbOk = $('#filter-rgb-ok').click(selectFilterColor),
   $filteredCount = $('#filtered-count'),
   $filteredLabel = $('#filtered-label'),
-  $filterPalette = $('#filter-palette'),
+  
+  $filterPalette = null,
   
   $('#qf-ok').click(applyQuickfilter);
   $('#qf-clear').click(toggleQuickfilter);
@@ -110,11 +111,9 @@ $.fourcat = function(opts) {
   }
   
   if ('HTMLMenuItemElement' in window) {
-    $('#ctxmenu-main')
-      .html(
-        '<menuitem label="Show hidden threads" id="ctxitem-unhide"></menuitem>'
-        + '<menuitem label="Unpin threads" id="ctxitem-unpin"></menuitem>'
-      );
+    document.getElementById('ctxmenu-main').innerHTML = 
+      '<menuitem label="Show hidden threads" id="ctxitem-unhide"></menuitem>'
+      + '<menuitem label="Unpin threads" id="ctxitem-unpin"></menuitem>';
     $('#ctxitem-unhide').click(clearHiddenThreads);
     $('#ctxitem-unpin').click(clearPinnedThreads);
   }
@@ -212,7 +211,7 @@ $.fourcat = function(opts) {
             localStorage.setItem('hide-' + catalog.slug, JSON.stringify(hiddenThreads));
             el.parentNode.parentNode.style.display = 'none';
             ++hiddenThreadsCount;
-            $hiddenCount.html(hiddenThreadsCount)
+            $hiddenCount[0].innerHTML = hiddenThreadsCount;
             $hiddenLabel.show();
             if (e.preventDefault) e.preventDefault();
             else e.returnValue = false;
@@ -252,14 +251,14 @@ $.fourcat = function(opts) {
   function enableButton($el) {
     $el.addClass('active');
     if ($el.hasClass('clickbox')) {
-      $el.html('&#x2714;');
+      $el[0].innerHTML = '&#x2714;';
     }
   }
   
   function disableButton($el) {
     $el.removeClass('active');
     if ($el.hasClass('clickbox')) {
-      $el.html('');
+      $el[0].innerHTML = '';
     }
   }
   
@@ -346,9 +345,12 @@ $.fourcat = function(opts) {
   }
   
   function showFilterPalette(e) {
-    var
-      $this = $(this),
-      pos = $this.position();
+    var pos = $(this).position();
+    
+    if (!$filterPalette) {
+      $filterPalette = $('#filter-palette');
+      buildFilterPalette();
+    }
     
     $filterPalette.attr('data-target', e.data.fid);
     $filterPalette.css({
@@ -687,17 +689,19 @@ $.fourcat = function(opts) {
       attr = 'data-' + e.data.type;
     
     if ($this.attr(attr) == '0') {
-      $this.attr(attr, '1').addClass('active').html('&#x2714;');
+      $this.attr(attr, '1').addClass('active')[0].innerHTML = '&#x2714;';
       if (e.data.xor) {
         $sel = $this.parent().parent().find('.filter-' + e.data.xor)
-          .attr('data-'  + e.data.xor, '0').removeClass('active').html('');
+          .attr('data-'  + e.data.xor, '0').removeClass('active')[0]
+            .innerHTML = '';
       }
     }
     else {
-      $this.attr(attr, '0').removeClass('active').html('');
+      $this.attr(attr, '0').removeClass('active')[0].innerHTML = '';
       if (e.data.xor) {
         $sel = $this.parent().parent().children('.filter-' + e.data.xor)
-          .attr('data-' + e.data.xor, '1').addClass('active').html('&#x2714;');
+          .attr('data-' + e.data.xor, '1').addClass('active')[0]
+            .innerHTML = '&#x2714;';
       }
     }
   }
@@ -1170,7 +1174,8 @@ $.fourcat = function(opts) {
       break;
     }
     
-    $thumbs = $threads.html(html).find('.thumb');
+    $threads[0].innerHTML = html;
+    $thumbs = $threads.find('.thumb');
     
     if (options.thsize == 'small' && hasCSSTransform && activeTheme.magnify) {
       $thumbs
@@ -1227,7 +1232,6 @@ $.fourcat = function(opts) {
     options = defaults;
   }
   
-  buildFilterPalette();
   bindGlobalShortcuts();
   
   fc.loadSettings();
@@ -1304,7 +1308,7 @@ released under the MIT license
     this.$element = $(element);
     this.options = options;
     this.enabled = true;
-    this.fixTitle();
+    //this.fixTitle();
   };
   
   Tipsy.prototype = {
@@ -1400,30 +1404,23 @@ released under the MIT license
       }
     },
     
-    fixTitle: function() {
-      var $e = this.$element;
-      if ($e.attr('title') || typeof($e.attr('data-original-title')) != 'string') {
-        $e.attr('data-original-title', $e.attr('title') || '').removeAttr('title');
-      }
-    },
-    
     getTitle: function() {
       var title, $e = this.$element, o = this.options;
-      this.fixTitle();
       var title, o = this.options;
       if (typeof o.title == 'string') {
-        title = $e.attr(o.title == 'title' ? 'data-original-title' : o.title);
+        title = $e[0].getAttribute(o.title);
       } else if (typeof o.title == 'function') {
         title = o.title.call($e[0]);
       }
-      title = ('' + title).replace(/(^\s*|\s*$)/, '');
       return title || o.fallback;
     },
     
     tip: function() {
       if (!this.$tip) {
-        this.$tip = $('<div class="tipsy"></div>')
-          .html('<div class="tipsy-arrow"></div><div class="tipsy-inner"></div>');
+        this.$tip = document.createElement('div');
+        this.$tip.setAttribute('class', 'tipsy');
+        this.$tip.innerHTML = '<div class="tipsy-arrow"></div><div class="tipsy-inner"></div>';
+        this.$tip = $(this.$tip);
       }
       return this.$tip;
     },
@@ -1468,7 +1465,7 @@ released under the MIT license
       if (options.delayIn == 0) {
         tipsy.show();
       } else {
-        tipsy.fixTitle();
+        //tipsy.fixTitle();
         setTimeout(
           function() { if (tipsy.hoverState == 'in') tipsy.show(); },
           options.delayIn

@@ -19,6 +19,7 @@ class Catalog
   TAG_REGEX   = /<[^>]+>/i
   PB_REGEX    = /[\u2028\u2029]/
   LB_REGEX    = /<br\s?\/?>/i
+  BB_TAGS     = { '[spoiler]' => '<s>', '[/spoiler]' => '</s>' }
   
   PURGE_SKIP  = 0.25
   
@@ -45,7 +46,7 @@ class Catalog
     :web_uri          => nil,
     :content_uri      => nil,
     :user_agent       => "4cat/#{VERSION}",
-    :spoiler_text     => '*spoiler*',
+    :spoiler_text     => false,
     :threads_pattern  => Regexp.new(
       '<img src="?(http://[^\s]+/([^\s"]+))?[^<]+</a>' <<
       '<a name="0"></a>\s+<input type=checkbox name="[0-9]+" value=delete>' <<
@@ -65,7 +66,7 @@ class Catalog
     :pages_pattern    => Regexp.new(
       '\[<a href="[0-9]{1,2}">([0-9]{1,2})</a>\] '
     ),
-    :spoiler_pattern  => /<span class="spoiler".*?<\/span>/i,
+    :spoiler_xpath    => './span[@class="spoiler"]',
     :datemap =>
     {
       :year   => 2,
@@ -191,14 +192,13 @@ class Catalog
   #   User Agent string, defaults to '4cat/{VERSION}'
   #
   # @option opts [String, false] spoiler_text
-  #   Replacement string for spoiler tags or 'false' to disable.
-  #   Defaults to '*spoiler*'.
+  #   Handle spoiler tags. Defaults to false.
   #
   # @option opts [Regexp] threads_pattern Threads regex
   # @option opts [Regexp] replies_pattern Omitted replies and images regex
   # @option opts [Regexp] date_pattern    Date regex
   # @option opts [Regexp] pages_pattern   Page navigation menu regex
-  # @option opts [Regexp] spoiler_pattern Spoiler tag regex
+  # @option opts [String] spoiler_xpath   Spoiler tags xpath
   # @option opts [Hash]   datemap         Parens match map for the date pattern
   # @option opts [Hash]   matchmap        Parens match map for threads pattern
   #
@@ -308,10 +308,12 @@ class Catalog
       @template = load_template(@tpl_file)
     end
     
-    if @opts.write_rss
-      raise "RSS writer: web_uri can't be empty" if !@opts.web_uri
-      @opts.rss_desc ||= "Meanwhile, on /#{@opts.slug}/"
+    if @opts.write_rss || @opts.spoiler_text
       require 'nokogiri'
+      if @opts.write_rss 
+        raise "RSS writer: web_uri can't be empty" if !@opts.web_uri
+        @opts.rss_desc ||= "Meanwhile, on /#{@opts.slug}/"
+      end
     end
     
     @headers = {
@@ -457,13 +459,22 @@ class Catalog
   end
   
   # Generates the excerpt (teaser)
-  # @param [String] Comment body
+  # @param [String] str Comment body
+  # @param [true, false] has_spoilers Teaser contains spoilers
   # @return [String]
-  def cut_teaser(str)
+  def cut_teaser(str, has_spoilers = false)
     teaser = @entities.decode(str)
     if teaser.length > @opts.teaser_length
-      teaser = @entities.encode(teaser[0, @opts.teaser_length] +
-        (teaser[@opts.teaser_length + 1] != ' ' ? '' : ' ')) + '…'
+      teaser = @entities.encode(teaser[0, @opts.teaser_length])
+      if has_spoilers
+        teaser.gsub!(/\[[^\]]*\]$/, '')
+        o = teaser.scan(/\[spoiler\]/).length
+        c = teaser.scan(/\[\/spoiler\]/).length
+        if (d = o - c) > 0
+          teaser << '[/spoiler]' * d
+        end
+      end
+      teaser << '…'
     else
       str
     end
@@ -759,6 +770,7 @@ class Catalog
     # Bailing out on empty threadlist
     if threadlist.empty?
       adjust_speed(0)
+      update_stats(0) if @opts.stats
       return @log.error 'Breaking on empty threadlist'
     end
     
@@ -890,29 +902,48 @@ class Catalog
       thread[:title] = t[mm[:title]]
       
       # Comment [String]
-      if t[mm[:body]]
-        thread[:body] = t[mm[:body]]
-        if @opts.spoiler_text
-          thread[:body].gsub!(@opts.spoiler_pattern, @opts.spoiler_text)
-        end
-        thread[:body].gsub!(LB_REGEX, "\n")
-        thread[:body].gsub!(TAG_REGEX, '')
-        # Teaser [String, nil]
-        if @opts.teaser_length > 0
-          thread[:teaser] =
-            if thread[:title] != @opts.default_title
-              if thread[:body] != @opts.default_comment
-                cut_teaser("#{thread[:title]}: #{thread[:body]}")
-              else
-                cut_teaser(thread[:title])
-              end
-            else
-              cut_teaser(thread[:body])
+      thread[:body] =
+        if @opts.spoiler_text && !t[mm[:body]].empty?
+          frag = Nokogiri::HTML.fragment(t[mm[:body]])
+          nodes =  frag.xpath('./span[@class="spoiler"]')
+          if nodes.empty?
+            has_spoilers = false
+            t[mm[:body]]
+          else
+            has_spoilers = true
+            nodes.each do |node|
+              node.remove if node.content == ''
+              node.replace("[spoiler]#{node.content}[/spoiler]")
             end
-          thread[:teaser].gsub!(/\n+/, ' ')
-          thread[:teaser].gsub!(PB_REGEX, '')
+            frag.to_s
+          end
+        else
+          has_spoilers = false
+          t[mm[:body]]
         end
-        thread[:body].gsub!("\n", '<br>')
+      thread[:body].gsub!(LB_REGEX, "\n")
+      thread[:body].gsub!(TAG_REGEX, '')
+      
+      # Teaser [String, nil]
+      if @opts.teaser_length > 0
+        thread[:teaser] =
+          if thread[:title] != @opts.default_title
+            if thread[:body] != @opts.default_comment
+              cut_teaser("#{thread[:title]}: #{thread[:body]}", has_spoilers)
+            else
+              cut_teaser(thread[:title])
+            end
+          else
+            cut_teaser(thread[:body], has_spoilers)
+          end
+        thread[:teaser].gsub!(/\n+/, ' ')
+        thread[:teaser].gsub!(PB_REGEX, '')
+      end
+      thread[:body].gsub!("\n", '<br>')
+      
+      if has_spoilers
+        thread[:body].gsub!(/\[\/?spoiler\]/, BB_TAGS) 
+        thread[:teaser].gsub!(/\[\/?spoiler\]/, BB_TAGS)
       end
       
       # Thumbnail filename or special file (spoiler, 404) [String]
