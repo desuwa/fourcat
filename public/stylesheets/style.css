@@ -501,8 +501,6 @@ input {
   display: block;
   margin: auto;
   z-index: 2;
-  -moz-transition: border-color 0.2s ease 0s;
-  -webkit-transition: border-color 0.2s ease 0s;
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 }
 
