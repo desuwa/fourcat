@@ -467,7 +467,7 @@ class Catalog
     if teaser.length > @opts.teaser_length
       teaser = @entities.encode(teaser[0, @opts.teaser_length])
       if has_spoilers
-        teaser.gsub!(/\[[^\]]*\]$/, '')
+        teaser.gsub!(/\[[\/spoiler\]]{0,8}$/, '')
         o = teaser.scan(/\[spoiler\]/).length
         c = teaser.scan(/\[\/spoiler\]/).length
         if (d = o - c) > 0
@@ -904,7 +904,7 @@ class Catalog
       # Comment [String]
       thread[:body] =
         if @opts.spoiler_text && !t[mm[:body]].empty?
-          frag = Nokogiri::HTML.fragment(t[mm[:body]])
+          frag = Nokogiri::HTML.fragment(t[mm[:body]], 'utf-8')
           nodes =  frag.xpath('./span[@class="spoiler"]')
           if nodes.empty?
             has_spoilers = false
