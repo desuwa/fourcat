@@ -126,8 +126,8 @@ $.fourcat = function(opts) {
     catalog = c;
     fc.loadStorage();
     updateTime();
-    $refresh[0].title =
-      $refresh.attr('data-title') + ' ' + fc.getDuration(catalog.delay, true);
+    $refresh[0].setAttribute('data-tip', $refresh[0].getAttribute('data-label')
+      + ' ' + fc.getDuration(catalog.delay, true));
     fc.setProxy(options.proxy, true);
     fc.buildThreads();
     centerThreads();
@@ -1308,7 +1308,6 @@ released under the MIT license
     this.$element = $(element);
     this.options = options;
     this.enabled = true;
-    //this.fixTitle();
   };
   
   Tipsy.prototype = {
@@ -1510,7 +1509,7 @@ released under the MIT license
     html: false,
     offset: 0,
     opacity: 1.0,
-    title: 'title',
+    title: 'data-tip',
     trigger: 'hover'
   };
   

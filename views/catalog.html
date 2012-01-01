@@ -29,16 +29,16 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
     <li><a class="button" href="/a/">/a/</a></li>
     <li><a class="button" href="/jp/">/jp/</a></li>
     <li class="sep">|</li>
-    <li><a class="wut button" target="_blank" title="/<%= @opts.slug %>/ on 4chan" href="http://boards.4chan.org/<%= @board %>/"><img alt="" src="/images/4chan.png"></a></li>
+    <li><a class="wut button" target="_blank" data-tip="/<%= @opts.slug %>/ on 4chan" href="http://boards.4chan.org/<%= @board %>/"><img alt="" src="/images/4chan.png"></a></li>
     <% if @opts.write_rss %>
-    <li id="rss"><a target="_blank" class="wut" title="RSS Feed" href="/<%= @opts.slug %>/feed.rss"><img alt="" src="/images/rss.png"></a></li>
+    <li id="rss"><a target="_blank" class="wut" data-tip="RSS Feed" href="/<%= @opts.slug %>/feed.rss"><img alt="" src="/images/rss.png"></a></li>
     <% end %>
   </ul>
 </div>
 <div id="content">
 <div id="ctrl">
   <div id="info">
-    <a id="refresh" data-title="Delay is" href="" class="button">Refresh</a> Updated <span id="updated"></span> ago &mdash; Ordered by <span id="ordered-date">creation date</span><span id="ordered-alt">bump date</span><span id="filtered-label"> &mdash; Filtered threads: <span id="filtered-count"></span></span><span id="hidden-label"> &mdash; Hidden threads: <span id="hidden-count"></span> - <a id="filters-clear-hidden" href="">show</a></span>
+    <a id="refresh" data-label="Delay is" href="" class="button">Refresh</a> Updated <span id="updated"></span> ago &mdash; Ordered by <span id="ordered-date">creation date</span><span id="ordered-alt">bump date</span><span id="filtered-label"> &mdash; Filtered threads: <span id="filtered-count"></span></span><span id="hidden-label"> &mdash; Hidden threads: <span id="hidden-count"></span> - <a id="filters-clear-hidden" href="">show</a></span>
   </div>
   <div id="settings">
     <span>Reorder:</span><span data-lbl-date="Date" data-lbl-alt="Natural" id="order-ctrl" class="button"></span>
@@ -56,16 +56,6 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
   <div class="clear"></div>
 </div>
 <div id="threads"></div>
-<div id="totop"><span class="button">&#8593; Back to Top &#8593;</span></div>
-</div>
-<div id="footer">
-  Running <a href="https://github.com/desuwa/fourcat">4cat <%= VERSION %></a> &mdash; Data pulled from <a href="http://www.4chan.org">4chan.org</a>
-</div>
-<noscript>
-  <div id="nojs">
-    <span>Your web browser must have JavaScript enabled in order for this site to display correctly.</span>
-  </div>
-</noscript>
 <div id="filters" class="panel">
   <div id="filters-protip" class="panel">
     <h4>Patterns</h4>
@@ -210,6 +200,16 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
     <span id="theme-close" class="button">Close</span>
   </span>
 </div>
+<div id="totop"><span class="button">&#8593; Back to Top &#8593;</span></div>
+</div>
+<div id="footer">
+  Running <a href="https://github.com/desuwa/fourcat">4cat <%= VERSION %></a> &mdash; Data pulled from <a href="http://www.4chan.org">4chan.org</a>
+</div>
+<noscript>
+  <div id="nojs">
+    <span>Your web browser must have JavaScript enabled in order for this site to display correctly.</span>
+  </div>
+</noscript>
 <menu type="context" id="ctxmenu-main">
 </menu>
 <script type="text/javascript">
