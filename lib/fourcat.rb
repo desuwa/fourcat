@@ -904,8 +904,9 @@ class Catalog
       # Comment [String]
       thread[:body] =
         if @opts.spoiler_text && !t[mm[:body]].empty?
+          t[mm[:body]].gsub!(/\[\/spoiler\]/, BB_TAGS)
           frag = Nokogiri::HTML.fragment(t[mm[:body]], 'utf-8')
-          nodes =  frag.xpath('./span[@class="spoiler"]')
+          nodes = frag.xpath('./span[@class="spoiler"]')
           if nodes.empty?
             has_spoilers = false
             t[mm[:body]]
