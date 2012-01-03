@@ -558,6 +558,7 @@ input {
 .teaser {
   line-height: 14px;
   margin-top: 3px;
+  padding: 0 2px;
   display: none;
 }
 
