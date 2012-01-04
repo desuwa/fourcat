@@ -1008,17 +1008,21 @@ $.fourcat = function(opts) {
   }
   
   fc.setOrder = function(order, init) {
+    var lbl = document.getElementById('ordered-by');
     if (order == 'date') {
       $orderCtrl.html($orderCtrl.attr('data-lbl-alt'));
-      $('#ordered-date').show();
-      $('#ordered-alt').hide();
+      lbl.innerHTML = 'creation date';
       options.orderby = 'date';
+    }
+    else if (order == 'alt') {
+      $orderCtrl.html($orderCtrl.attr('data-lbl-r'));
+      lbl.innerHTML = 'bump date';
+      options.orderby = 'alt';
     }
     else {
       $orderCtrl.html($orderCtrl.attr('data-lbl-date'));
-      $('#ordered-date').hide();
-      $('#ordered-alt').show();
-      options.orderby = 'alt';
+      lbl.innerHTML = 'reply count';
+      options.orderby = 'r';
     }
     if (!init) {
       saveSettings();
@@ -1031,7 +1035,15 @@ $.fourcat = function(opts) {
   });
   
   $orderCtrl.click(function() {
-    fc.setOrder(options.orderby == 'date' ? 'alt' : 'date');
+    if (options.orderby == 'date') {
+      fc.setOrder('alt');
+    }
+    else if (options.orderby == 'alt') {
+      fc.setOrder('r');
+    }
+    else {
+      fc.setOrder('date');
+    }
   });
   
   $teaserCtrl.click(function() {

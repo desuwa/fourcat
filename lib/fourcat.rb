@@ -491,11 +491,13 @@ class Catalog
       if resp.code != '200'
         if resp.code == '404'
           raise HTTPNotFound, "Not Found #{http.address}#{path}"
+        elsif resp.code == '302'
+          raise HTTPFound, "HTTP 302 #{http.address}#{path}"
         else
           raise HTTPError, "HTTP #{resp.code}"
         end
       end
-    rescue HTTPNotFound => e
+    rescue HTTPFound, HTTPNotFound => e
       raise e
     rescue HTTPError, StandardError => e
       if try > @opts.retries
@@ -777,6 +779,9 @@ class Catalog
     order = {}
     order[:alt] = natural_order.flatten.unshift(*stickies)
     order[:date] = order[:alt].sort { |x, y| y <=> x }
+    order[:r] = order[:alt].sort do |x, y|
+      threadlist[y][:r] <=> threadlist[x][:r]
+    end
     
     @latest_thread = order[:date][0] || 0
     
@@ -1162,6 +1167,9 @@ class HTTPError < StandardError; end
 
 # Raised on HTTP 404
 class HTTPNotFound < HTTPError; end
+
+# Raised on HTTP 302
+class HTTPFound < HTTPError; end
 
 # Raised when asked to halt
 class CatalogHalt < StandardError; end

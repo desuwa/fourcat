@@ -260,13 +260,10 @@ input {
 
 #filtered-count,
 #hidden-count,
-#ordered-date,
-#ordered-alt {
+#ordered-by {
   font-weight: bold;
 }
 
-#ordered-date,
-#ordered-alt,
 #filtered-label,
 #hidden-label {
   display: none;

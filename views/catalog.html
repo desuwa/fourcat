@@ -38,10 +38,10 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
 <div id="content">
 <div id="ctrl">
   <div id="info">
-    <a id="refresh" data-label="Delay is" href="" class="button">Refresh</a> Updated <span id="updated"></span> ago &mdash; Ordered by <span id="ordered-date">creation date</span><span id="ordered-alt">bump date</span><span id="filtered-label"> &mdash; Filtered threads: <span id="filtered-count"></span></span><span id="hidden-label"> &mdash; Hidden threads: <span id="hidden-count"></span> - <a id="filters-clear-hidden" href="">show</a></span>
+    <a id="refresh" data-label="Delay is" href="" class="button">Refresh</a> Updated <span id="updated"></span> ago &mdash; Ordered by <span id="ordered-by"></span><span id="filtered-label"> &mdash; Filtered threads: <span id="filtered-count"></span></span><span id="hidden-label"> &mdash; Hidden threads: <span id="hidden-count"></span> - <a id="filters-clear-hidden" href="">show</a></span>
   </div>
   <div id="settings">
-    <span>Reorder:</span><span data-lbl-date="Date" data-lbl-alt="Natural" id="order-ctrl" class="button"></span>
+    <span>Reorder:</span><span data-lbl-date="Date" data-lbl-alt="Natural" data-lbl-r="Replies" id="order-ctrl" class="button"></span>
     <span>Resize:</span><span data-lbl-small="Small" data-lbl-large="Large" id="size-ctrl" class="button"></span>
     <span>Teaser:</span><span data-lbl-show="Show" data-lbl-hide="Hide" id="teaser-ctrl" class="button"></span>
     <span class="sep">|</span>
