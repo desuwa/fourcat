@@ -919,7 +919,8 @@ class Catalog
             has_spoilers = true
             nodes.each do |node|
               node.remove if node.content == ''
-              node.replace("[spoiler]#{node.content}[/spoiler]")
+              node.replace(Nokogiri::HTML.fragment(
+                "[spoiler]#{node.content}[/spoiler]", 'utf-8'))
             end
             frag.to_s
           end
