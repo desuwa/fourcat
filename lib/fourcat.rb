@@ -48,7 +48,7 @@ class Catalog
     :user_agent       => "4cat/#{VERSION}",
     :spoiler_text     => false,
     :threads_pattern  => Regexp.new(
-      '<img src="?(http://[^\s]+/([^\s"]+))?[^<]+</a>' <<
+      '<img src="?(http://[^\s"]+)?[^<]+</a>' <<
       '<a name="0"></a>\s+<input type=checkbox name="[0-9]+" value=delete>' <<
       '<span class="filetitle">([^<]*)</span>\s+' <<
       '<span class="postername">(.*)</span>\s' <<
@@ -78,16 +78,15 @@ class Catalog
     },
     :matchmap =>
     {
-      :src    => 0,
-      :file   => 1,
-      :title  => 2,
-      :author => 3,
-      :date   => 4,
-      :status => 5,
-      :id     => 6,
-      :body   => 7,
-      :orep   => 8,
-      :oimg   => 9
+      :thumb  => 0,
+      :title  => 1,
+      :author => 2,
+      :date   => 3,
+      :status => 4,
+      :id     => 5,
+      :body   => 6,
+      :orep   => 7,
+      :oimg   => 8
     },
     :utc_offset     => Time.zone_offset('EST'),
     :req_delay      => 1.2,
@@ -499,7 +498,7 @@ class Catalog
       end
     rescue HTTPFound, HTTPNotFound => e
       raise e
-    rescue HTTPError, StandardError => e
+    rescue HTTPError => e
       if try > @opts.retries
         raise "Skipping after #{e.message}: #{http.address}#{path}"
       end
@@ -621,14 +620,13 @@ class Catalog
     threads = {}
     threadlist.each do |id, thread|
       threads[id] = {
-        :date => thread[:date].to_i,
-        :file => thread[:file]
+        :date => thread[:date].to_i
       }
       threads[id][:teaser] = thread[:teaser] if thread[:teaser]
       threads[id][:author] = thread[:author] if thread[:author]
       threads[id][:r] = thread[:r] if thread[:r] != 0
       threads[id][:i] = thread[:i] if thread[:i]
-      threads[id][:s] = true if thread[:s]
+      threads[id][:s] = thread[:s] if thread[:s]
     end
     
     json = {
@@ -791,7 +789,7 @@ class Catalog
       
       threadlist.each do |id, thread|
         if !thread[:s]
-          thumblist[thread[:local].freeze] = [thread[:src], id]
+          thumblist["#{@thumbs_dir}#{id}.jpg".freeze] = [ thread[:src], id ]
         end
       end
       
@@ -808,24 +806,25 @@ class Catalog
       workers = {}
       active_workers = 0
       
-      new_thumbs.each do |src|
+      new_thumbs.each do |file|
         while active_workers >= @opts.workers_limit
           sleep(@opts.req_delay)
         end
-        @log.debug "Thumbnail (#{thumblist[src][1]}) #{thumblist[src][0]}"
-        workers[thumblist[src][1]] = Thread.new(src) do |src|
+        src = thumblist[file][0]
+        id = thumblist[file][1]
+        @log.debug "Thumbnail (#{id}) #{src}"
+        workers[id] = Thread.new do
           begin
             active_workers += 1
-            data = get_image(thumblist[src][0])
-            write_image(src, data)
+            data = get_image(src)
+            write_image(id, data)
           rescue StandardError => e
             if e.kind_of?(HTTPNotFound)
               @log.debug e.message
             else
               @log.error get_error(e)
             end
-            threadlist[thumblist[src][1]][:s] = true
-            threadlist[thumblist[src][1]][:file] = @thumb_404
+            threadlist[id][:s] = @thumb_404
           ensure
             active_workers -= 1
           end
@@ -892,7 +891,7 @@ class Catalog
     
     matches.each do |t|
       # Skipping threads with no image
-      next if t[mm[:src]] == nil
+      next if t[mm[:thumb]] == nil
       
       thread = {}
       
@@ -919,7 +918,8 @@ class Catalog
             has_spoilers = true
             nodes.each do |node|
               node.remove if node.content == ''
-              node.replace("[spoiler]#{node.content}[/spoiler]")
+              node.replace(Nokogiri::HTML.fragment(
+                "[spoiler]#{node.inner_html}[/spoiler]", 'utf-8'))
             end
             frag.to_s
           end
@@ -954,18 +954,13 @@ class Catalog
       
       # Thumbnail filename or special file (spoiler, 404) [String]
       if @opts.text_only
-        thread[:s] = true;
-        thread[:file] = @thumb_404
-      elsif t[mm[:file]].include?('spoiler')
-        thread[:s] = true;
-        thread[:file] = @spoiler_pic
-      else
-        thread[:file] = t[mm[:file]]
-        thread[:local] = @thumbs_dir + t[mm[:file]]
+        thread[:s] = @thumb_404
+      elsif t[mm[:thumb]].include?('spoiler')
+        thread[:s] = @spoiler_pic
       end
       
       # Thumbnail URL [String]
-      thread[:src] = t[mm[:src]]
+      thread[:src] = t[mm[:thumb]]
       
       # Author [String]
       t[mm[:author]].strip!
@@ -1089,8 +1084,9 @@ class Catalog
   end
   
   # Writes thumbnail files
-  def write_image(name, data)
-    File.open(name, 'wb') { |f| f.write(data) }
+  # @param [Integer] id Image id
+  def write_image(id, data)
+    File.open("#{@thumbs_dir}#{id}.jpg", 'wb') { |f| f.write(data) }
   end
   
   # Outputs the thread list as JSON
@@ -1127,14 +1123,13 @@ class Catalog
             xml.item {
               xml.title "No.#{id}"
               src = @rss_content_uri +
-                if th[:s] || !th[:file]
-                  'images/'
+                if th[:s]
+                  "images/#{th[:s]}"
                 else
-                  @opts.slug + '/src/'
+                  @opts.slug + "/src/#{id}.jpg"
                 end
               xml.description(
-                '<img src="' << src << th[:file] <<
-                '" alt="' << th[:file] << '" />' <<
+                '<img src="' << src << '" alt="' << "#{id}" << '" />' <<
                 '<p>' << (th[:teaser] || th[:body]) << '</p>'
               )
               xml.link "#{th[:href]}"

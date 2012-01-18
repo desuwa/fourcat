@@ -467,8 +467,8 @@ input {
 
 /* Thread in compact mode */
 .small .thread {
-  width: 140px;
-  height: 155px;
+  width: 165px;
+  height: 175px;
 }
 
 /* Thread in large mode */
@@ -479,7 +479,7 @@ input {
 
 /* Thread in compact mode with teaser displayed */
 .extended-small .thread {
-  width: 140px;
+  width: 165px;
   height: 290px;
 }
 
@@ -519,27 +519,15 @@ input {
 /* Scaled thumbnail when hovered in compact mode */
 .scaled {
   position: absolute;
-  -moz-transition-property: none;
-  -webkit-transition-property: none;
-  box-shadow: none;
-  -moz-transform: scale(1.8);
-  -webkit-transform: scale(1.8);
-  -ms-transform: scale(1.8);
-  -o-transform: scale(1.8);
+  max-height: none !important;
+  max-width: none !important;
 }
 
 /* Thumbnails in compact mode */
 .extended-small .thumb,
 .small .thumb {
-  max-width: 125px;
-  max-height: 125px;
-}
-
-/* Thumbnails in large mode */
-.extended-large .thumb,
-.large .thumb {
-  max-width: 251px;
-  max-height: 251px;
+  max-width: 150px;
+  max-height: 150px;
 }
 
 /* Replies / images / page indicators */
