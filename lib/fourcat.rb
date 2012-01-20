@@ -498,7 +498,7 @@ class Catalog
       end
     rescue HTTPFound, HTTPNotFound => e
       raise e
-    rescue HTTPError => e
+    rescue Timeout::Error, HTTPError => e
       if try > @opts.retries
         raise "Skipping after #{e.message}: #{http.address}#{path}"
       end
