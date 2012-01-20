@@ -69,12 +69,6 @@ $.fourcat = function(opts) {
       return false;
     }
   })(),
-  hasCSSTransform = (
-    document.body.style.MozTransform !== undefined ||
-    document.body.style.WebkitTransform !== undefined ||
-    document.body.style.OTransform !== undefined ||
-    document.body.style.msTransform !== undefined
-  ),
   
   pulseInterval = null,
   
@@ -274,33 +268,32 @@ $.fourcat = function(opts) {
   function onThumbMouseIn() {
     var
       $this = $(this),
-      $thread = $this.closest('.thread');
+      ofsDiff = this.offsetLeft - $this.closest('.thread')[0].offsetLeft,
+      oldWidth = this.offsetWidth,
+      oldHeight = this.offsetHeight,
+      newWidth, newHeight;
     
     $this.clone().insertAfter($this);
     
     $this.addClass('scaled');
     
-    var
-      center = this.offsetWidth / 2,
-      offset = $thread[0].offsetWidth / 2 - center;
+    newWidth = this.offsetWidth;
+    newHeight = this.offsetHeight;
     
-    if (!activeTheme.notipsy) {
-      $this.data('tipsy').options.offset = center * 0.8;
-    }
+    offsetX = (-(newWidth - oldWidth) / 2) + ofsDiff;
+    offsetY = -(newHeight - oldHeight) / 2;
     
-    this.style.marginLeft = offset + 'px';
+    this.style.marginLeft = offsetX + 'px';
+    this.style.marginTop = offsetY + 'px';
   }
   
   function onThumbMouseOut() {
     var $this = $(this);
     $this.next().remove();
     
-    if (!activeTheme.notipsy) {
-      $this.data('tipsy').options.offset = 0;
-    }
-    
     $this.removeClass('scaled');
     this.style.marginLeft = '';
+    this.style.marginTop = '';
   }
   
   // Bound to window.onresize
@@ -796,14 +789,14 @@ $.fourcat = function(opts) {
     
     if (customTheme.magnify) {
       if (activeTheme.magnify != customTheme.magnify
-          && options.thsize == 'small' && hasCSSTransform) {
+          && options.thsize == 'small') {
         $thumbs
           .on('mouseenter.scale', onThumbMouseIn)
           .on('mouseleave.scale', onThumbMouseOut);
       }
     }
     else {
-      if (activeTheme.magnify != customTheme.magnify && hasCSSTransform) {
+      if (activeTheme.magnify != customTheme.magnify) {
         $thumbs
           .off('mouseenter.scale')
           .off('mouseleave.scale');
@@ -941,7 +934,7 @@ $.fourcat = function(opts) {
     if (size == 'small') {
       $sizeCtrl.html($sizeCtrl.attr('data-lbl-large'));
       cls = 'small';
-      if ($thumbs && hasCSSTransform && activeTheme.magnify) {
+      if ($thumbs && activeTheme.magnify) {
         $thumbs
           .on('mouseenter.scale', onThumbMouseIn)
           .on('mouseleave.scale', onThumbMouseOut);
@@ -951,7 +944,7 @@ $.fourcat = function(opts) {
     else {
       $sizeCtrl.html($sizeCtrl.attr('data-lbl-small'));
       cls = 'large';
-      if ($thumbs && hasCSSTransform && activeTheme.magnify) {
+      if ($thumbs && activeTheme.magnify) {
         $thumbs
           .off('mouseenter.scale')
           .off('mouseleave.scale');
@@ -1126,8 +1119,10 @@ $.fourcat = function(opts) {
         thread += ' pinned';
       }
       thread += '" src="' + options.contentUrl
-      + (entry.s ? 'images/' : (catalog.slug + '/src/'))
-      + entry.file + '" data-id="' + id + '" /></a>';
+      + (entry.s ?
+        ('images/' + entry.s) :
+        (catalog.slug + '/src/' + id + '.jpg')
+        ) + '" data-id="' + id + '" /></a>';
       
       thread += '<div title="(R)eplies / (I)mages'
         + (onTop ? ' / (P)age' : '') + '" id="meta-' + id + '" class="meta">';
@@ -1189,7 +1184,7 @@ $.fourcat = function(opts) {
     $threads[0].innerHTML = html;
     $thumbs = $threads.find('.thumb');
     
-    if (options.thsize == 'small' && hasCSSTransform && activeTheme.magnify) {
+    if (options.thsize == 'small' && activeTheme.magnify) {
       $thumbs
         .on('mouseenter.scale', onThumbMouseIn)
         .on('mouseleave.scale', onThumbMouseOut);
