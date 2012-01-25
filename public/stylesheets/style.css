@@ -158,36 +158,12 @@ input {
   text-shadow: 0px 1px 2px #000;
 }
 
-/* Text shadow for dark colors */
-.hl-low {
-  -moz-text-shadow: 0px 0px 2px #fff;
-  -o-text-shadow: 0px 0px 2px #fff;
-  -webkit-text-shadow: 0px 0px 2px #fff;
-  text-shadow: 0px 0px 2px #fff;
-}
-
-/* Pulsing halo highlight */
+/* Halo highlight for new stuff */
 .nu {
-  -moz-box-shadow: 0px 0px 8px #FFA500;
-  -webkit-box-shadow: 0px 0px 8px #FFA500;
-  -o-box-shadow: 0px 0px 8px #FFA500;
-  box-shadow: 0px 0px 8px #FFA500;
-  -moz-animation: blink 1s ease-in-out infinite alternate;
-  -webkit-animation: blink 1s ease-in-out infinite alternate;
-  animation: blink 1s ease-in-out infinite alternate;
-}
-
-@-moz-keyframes blink {
-  0% { -moz-box-shadow: 0px 0px 1px #FFA500; }
-  100% { -moz-box-shadow: 0px 0px 8px #FFA500; }
-}
-@-webkit-keyframes blink {
-  0% { -webkit-box-shadow: 0px 0px 1px #FFA500; }
-  100% { -webkit-box-shadow: 0px 0px 8px #FFA500; }
-}
-@keyframes blink {
-  0% { box-shadow: 0px 0px 1px #FFA500; }
-  100% { box-shadow: 0px 0px 8px #FFA500; }
+  -moz-box-shadow: 0px 0px 10px #FFA500;
+  -webkit-box-shadow: 0px 0px 10px #FFA500;
+  -o-box-shadow: 0px 0px 10px #FFA500;
+  box-shadow: 0px 0px 10px #FFA500;
 }
 
 /* Notifications */
@@ -318,6 +294,10 @@ input {
 }
 
 /* Front page menu */
+.front {
+  line-height: 35px !important;
+}
+
 .front a {
   padding: 3px 5px;
   font-size: 20px;
