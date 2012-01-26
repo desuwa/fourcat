@@ -2,9 +2,10 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>4chan Board Statistics</title>
+  <title>4chan Statistics</title>
   <meta name="description" content="4chan Board Statistics" />
   <meta name="keywords" content="4chan,catalog,catalogue,threads,list,stats,statistics">
+  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
   <script type="text/javascript" src="https://www.google.com/jsapi"></script>
   <script type="text/javascript" src="/javascripts/fourcat-stats.js"></script>
   <link rel="stylesheet" type="text/css" href="/stylesheets/style.css" />
@@ -12,40 +13,70 @@
 </head>
 <body>
 <div id="header">
-  <h1 id="title">4chan Board Statistics</h1>
+  <h1 id="title">Statistics</h1>
   <ul id="topnav">
     <li><a class="button" href="/">Home</a></li>
-    <li class="sep">|</li>
-    <li><a class="button" href="/a/">/a/</a></li>
-    <li><a class="button" href="/jp/">/jp/</a></li>
-    <li class="sep">|</li>
     <li><a class="button" target="_blank" href="http://www.4chan.org/"><img alt="4chan" src="/images/4chan.png" /></a></li>
   </ul>
 </div>
 
 <div id="stats">
   <h2>Daily Activity</h2>
+  <ul id="statnav">
+    <li class="button" data-slug="a">/a/</li>
+    <li class="button" data-slug="jp">/jp/</li>
+  </ul>
+  <div id="stats-threads" class="chart"></div>
 </div>
 
 <script type="text/javascript">
   var
-    statscnt = document.getElementById('stats'),
-    tiers = [ ['a'], ['jp'] ],
+    chart,
     stats = <%= @output %>;
   
-  if (stats) {
-    if (!tiers[0]) {
-      plotGroup(0, statscnt, stats);
+  function plotSelectedBoards() {
+    var data = {}, $active = $('#statnav').find('.active');
+    
+    $active.each(function() {
+      var slug = this.getAttribute('data-slug');
+      if (stats[slug]) {
+        data[slug] = stats[slug];
+      }
+    });
+    
+    plotStats(data, chart);
+  }
+  
+  google.load('visualization', '1', { packages:['corechart'] });
+  
+  $(document).ready(function() {
+    var ref;
+    
+    if (!stats) {
+      document.getElementById('stats-threads').innerHTML = 'No data';
     }
-    else {
-      for (var i = 0, l = tiers.length; i < l; ++i) {
-        plotGroup(i, statscnt, stats, tiers[i]);
+    
+    if (ref = document.referrer.match(/\/([a-z0-9]+)\/$/)) {
+      if (stats[ref[1]]) {
+        $('#statnav').find('li[data-slug="' + ref[1] + '"]').addClass('active');
       }
     }
-  }
-  else {
-    document.getElementById('stats').innerHTML = '<p class="center">No data</p>';
-  }
+    else {
+      $('#statnav').find('li:first').addClass('active');
+    }
+    
+    chart = new google.visualization.LineChart(
+      document.getElementById('stats-threads')
+    );
+    
+    $('#statnav').on('click', 'li', function() {
+      $(this).toggleClass('active');
+      plotSelectedBoards();
+    });
+    
+    plotSelectedBoards();
+  });
+
 </script>
 
 <div class="clear"></div>

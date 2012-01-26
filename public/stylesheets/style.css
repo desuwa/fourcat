@@ -280,7 +280,6 @@ input {
 
 #topnav li {
   display: inline;
-  margin-right: 2px;
 }
 
 #topnav img {
@@ -597,21 +596,35 @@ input {
 
 /* Stats page */
 #stats {
-  padding-top: 30px;
+  text-align: center;
+  padding-bottom: 20px;
 }
 
 #stats h2 {
   font-size: 20px;
   font-weight: bold;
-  margin-bottom: 30px;
-  text-align: center;
+  margin-top: 20px;
+}
+
+#stats img {
+  margin-top: 20px;
+}
+
+#statnav {
+  margin-top: 20px;
+  line-height: 20px;
+}
+
+#statnav li {
+  display: inline;
 }
 
 .chart {
   width: 960px;
   height: 400px;
+  line-height: 400px;
   padding: 0px;
-  margin: 0px auto 30px auto;
+  margin: 20px auto 0px auto;
   border: 2px solid #555555;
   -moz-border-radius:3px;
   -webkit-border-radius:3px;

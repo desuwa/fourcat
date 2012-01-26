@@ -35,37 +35,24 @@ function getTimezone() {
   return tz;
 }
 
-function plotGroup(id, container, stats, group) {
-  var div = document.createElement('div');
-  div.id = 'stats-tier-' + id;
-  div.setAttribute('class', 'chart');
-  container.appendChild(div);
+function plotStats(stats, chart, labels) {
+  var empty = true;
   
-  if (group) {
-    groupstats = {};
-    for (var i = group.length - 1; i >= 0; i--) {
-      if (stats[group[i]]) {
-        groupstats[group[i]] = stats[group[i]];
-      }
-    }
-    plotStats(groupstats, 'stats-tier-' + id);
+  for (var i in stats) {
+    empty = false;
+    break;
   }
-  else {
-    plotStats(stats, 'stats-tier-' + id);
-  }
-}
-
-function plotStats(stats, container, labels) {
-  if (stats == false) {
-    return $(document.getElementById(container)).addClass('nodata').html('No Data');
+  
+  if (empty) {
+    return false;
   }
   
   var labels = labels || {};
   labels.h = labels.h || 'Time ';
   labels.v = labels.v || 'New Threads';
   
-  google.load('visualization', '1', {packages:['corechart']});
-  google.setOnLoadCallback(draw);
+  draw();
+  
   function draw() {
     var
       data = new google.visualization.DataTable(),
@@ -94,8 +81,7 @@ function plotStats(stats, container, labels) {
       ++i;
     }
     data.addRows(rows);
-    new google.visualization.LineChart(document.getElementById(container))
-      .draw(data, {
+    chart.draw(data, {
         hAxis: { title: labels.h + tz.oStr },
         vAxis: { title: labels.v },
         tooltipTextStyle: { fontSize: 11 },
@@ -107,4 +93,5 @@ function plotStats(stats, container, labels) {
       }
     );
   }
+  return true;
 }
