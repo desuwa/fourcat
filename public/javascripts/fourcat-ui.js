@@ -418,13 +418,22 @@ $.fourcat = function(opts) {
     rawFilters = $.parseJSON(rawFilters);
     
     var
-      wordSep = options.filterFullWords ? '\\b' : '',
-      orJoin = wordSep + '|' + wordSep,
+      wordSepS, wordSepE, orJoin,
       regexType = /^\/(.*)\/(i?)$/,
       regexOrNorm = /\s*\|+\s*/g,
       regexWc = /\\\*/g,
       regexEscape = getRegexSpecials(),
       match, inner, words, rawPattern, pattern, orOp, orCluster, type;
+    
+    if (options.filterFullWords) {
+      wordSepS = '(?:^|\\b)';
+      wordSepE = '(?:$|\\b)';
+      orJoin = wordSepS + '|' + wordSepE;
+    }
+    else {
+      wordSepS = wordSepE = '';
+      orJoin = '|';
+    }
     
     try {
       for (var fid in rawFilters) {
@@ -454,15 +463,14 @@ $.fourcat = function(opts) {
                       orCluster.push(orOp[v].replace(regexEscape, '\\$1'));
                     }
                   }
-                  inner = orCluster.join(orJoin).replace(regexWc, '.*');
-                  pattern += ('(?=.*(' + wordSep + inner + wordSep + '))');
+                  inner = orCluster.join('|').replace(regexWc, '.*');
+                  pattern += ('(?=.*' + wordSepS + '(' + inner + ')' + wordSepE + ')');
                 }
                 else {
                   inner = words[w].replace(regexEscape, '\\$1').replace(regexWc, '.*');
-                  pattern += ('(?=.*' + wordSep + inner + wordSep + ')');
+                  pattern += ('(?=.*' + wordSepS + inner + wordSepE + ')');
                 }
               }
-              pattern = '^' + pattern + '.*$';
               pattern = new RegExp(pattern, 'i');
             }
           }
@@ -481,7 +489,8 @@ $.fourcat = function(opts) {
       }
     }
     catch (err) {
-      alert('There was an error processing one of the filters: ' + err);
+      alert('There was an error processing one of the filters: '
+        + err + ' in: ' + rawPattern);
     }
   }
   
@@ -677,25 +686,18 @@ $.fourcat = function(opts) {
   }
   
   function toggleFilter(e) {
-    var
-      $this = $(this),
-      attr = 'data-' + e.data.type;
+    var $this = $(this), attr = 'data-' + e.data.type, xorEle;
     
     if ($this.attr(attr) == '0') {
       $this.attr(attr, '1').addClass('active')[0].innerHTML = '&#x2714;';
       if (e.data.xor) {
-        $sel = $this.parent().parent().find('.filter-' + e.data.xor)
+        xorEle = $this.parent().parent().find('.filter-' + e.data.xor)
           .attr('data-'  + e.data.xor, '0').removeClass('active')[0]
             .innerHTML = '';
       }
     }
     else {
       $this.attr(attr, '0').removeClass('active')[0].innerHTML = '';
-      if (e.data.xor) {
-        $sel = $this.parent().parent().children('.filter-' + e.data.xor)
-          .attr('data-' + e.data.xor, '1').addClass('active')[0]
-            .innerHTML = '&#x2714;';
-      }
     }
   }
   
