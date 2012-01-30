@@ -491,19 +491,24 @@ class Catalog
         if resp.code == '404'
           raise HTTPNotFound, "Not Found #{http.address}#{path}"
         elsif resp.code == '302'
-          raise HTTPFound, "HTTP 302 #{http.address}#{path}"
+          raise HTTPFound, 'HTTP 302'
         else
           raise HTTPError, "HTTP #{resp.code}"
         end
       end
-    rescue HTTPFound, HTTPNotFound => e
+    rescue HTTPNotFound => e
       raise e
     rescue Timeout::Error, HTTPError => e
       if try > @opts.retries
         raise "Skipping after #{e.message}: #{http.address}#{path}"
       end
       @log.debug "Retrying after #{e.message} (#{try}): #{http.address}#{path}"
-      try += 1
+      if e.kind_of?(HTTPFound)
+        try += @opts.retries
+        path << '?4cat'
+      else
+        try += 1
+      end
       sleep(@opts.req_delay)
       retry
     end

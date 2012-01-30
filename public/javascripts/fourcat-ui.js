@@ -303,10 +303,13 @@ $.fourcat = function(opts) {
     var
       thumbswidth = $thumbs.closest('.thread').outerWidth(true),
       threadswidth = $threads[0].offsetWidth,
-      rowsize = (0 | (threadswidth / thumbswidth)) * thumbswidth,
-      pad = (threadswidth - rowsize) / 2;
+      rowsize = (0 | (threadswidth / thumbswidth)) * thumbswidth;
     
-    $threads[0].style.paddingLeft = pad + 'px';
+    if (rowsize == 0) {
+      return;
+    }
+    
+    $threads[0].style.paddingLeft = ((threadswidth - rowsize) / 2) + 'px';
   }
   
   // Generate the color palette for the filters
@@ -421,7 +424,7 @@ $.fourcat = function(opts) {
       wordSepS, wordSepE, orJoin,
       regexType = /^\/(.*)\/(i?)$/,
       regexOrNorm = /\s*\|+\s*/g,
-      regexWc = /\\\*/g,
+      regexWc = /\\\*/g, replWc = '[^\\s]*',
       regexEscape = getRegexSpecials(),
       match, inner, words, rawPattern, pattern, orOp, orCluster, type;
     
@@ -463,11 +466,11 @@ $.fourcat = function(opts) {
                       orCluster.push(orOp[v].replace(regexEscape, '\\$1'));
                     }
                   }
-                  inner = orCluster.join('|').replace(regexWc, '.*');
+                  inner = orCluster.join('|').replace(regexWc, replWc);
                   pattern += ('(?=.*' + wordSepS + '(' + inner + ')' + wordSepE + ')');
                 }
                 else {
-                  inner = words[w].replace(regexEscape, '\\$1').replace(regexWc, '.*');
+                  inner = words[w].replace(regexEscape, '\\$1').replace(regexWc, replWc);
                   pattern += ('(?=.*' + wordSepS + inner + wordSepE + ')');
                 }
               }
