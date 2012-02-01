@@ -57,7 +57,7 @@ Minimum and maximum refresh delays.
 
 ***
 
-> **Symbol**: `request_delay`  
+> **Symbol**: `req_delay`  
   **Type**: Float  
   **Default**: `1.2`
 

@@ -25,6 +25,22 @@
     
     unhide: function(cmd) {
       unsetThread('hide', cmd.slug, cmd.pid);
+    },
+    
+    getPinned: function(cmd, remote) {
+      var pinned;
+      if (!boards[cmd.slug]) { throw 'Bad board: ' + cmd.slug; }
+      if (pinned = getItem('pin-' + cmd.slug)) {
+        sendMsg(remote, 'pinned', pinned);
+      }
+    },
+    
+    getHidden: function(cmd, remote) {
+      var hidden;
+      if (!boards[cmd.slug]) { throw 'Bad board: ' + cmd.slug; }
+      if (hidden = getItem('hide-' + cmd.slug)) {
+        sendMsg(remote, 'hidden', hidden);
+      }
     }
   };
   
@@ -85,7 +101,6 @@
           methods[commands[i].type](commands[i], msg.origin);
         }
       }
-      sendMsg(msg.origin, 'ok', 'Done');
     }
     catch (e) {
       return sendMsg(msg.origin, 'error', e.message || e);
