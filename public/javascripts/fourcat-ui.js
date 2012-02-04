@@ -3,7 +3,7 @@ $.fourcat = function(opts) {
   var fc = this,
   
   defaults = {
-    // Order: 'date' or 'alt'
+    // Order: 'date', 'alt' or 'r'
     orderby: 'date',
     // Thumbnail size: 'small' or 'large'
     thsize: 'small',
@@ -11,10 +11,6 @@ $.fourcat = function(opts) {
     extended: true,
     // Redirect to the archive
     proxy: false,
-    // Cookie domain
-    cookieDomain: document.domain,
-    // Cookie path
-    cookiePath: '/',
     // Thumbnails server url
     contentUrl: '/',
     // Filter complete words
@@ -30,6 +26,8 @@ $.fourcat = function(opts) {
   catalog = {},
   
   options = {},
+  
+  basicSettings = [ 'orderby', 'thsize', 'extended', 'proxy' ],
   
   baseFilter = {
     active: 1,
@@ -895,43 +893,36 @@ $.fourcat = function(opts) {
     }
   }
   
-  // Loads cookie stored settings
+  // Loads basic settings from localStorage
   fc.loadSettings = function() {
-    var settings = $.parseJSON($.cookie('4cat'));
-    if (settings) {
-      $.extend(options, settings);
+    var settings;
+    if (hasWebStorage && hasNativeJSON
+      && (settings = localStorage.getItem('settings'))) {
+      $.extend(options, JSON.parse(settings));
+    }
+    else {
+      $.extend(options, defaults);
     }
   }    
   
-  // Saves settings to a cookie
+  // Saves basic settings to localStorage
   function saveSettings() {
-    var settings = [];
-    if (options.orderby != defaults.orderby) {
-      settings.push('"orderby":"' + options.orderby + '"');
+    var i, key, settings;
+    if (!hasWebStorage || !hasNativeJSON) {
+      return;
     }
-    if (options.thsize != defaults.thsize) {
-      settings.push('"thsize":"' + options.thsize + '"');
+    settings = {};
+    for (i = basicSettings.length - 1; i >= 0; i--) {
+      key = basicSettings[i];
+      if (options[key] != defaults[key]) {
+        settings[key] = options[key];
+      }
     }
-    if (options.extended != defaults.extended) {
-      settings.push('"extended":' + (options.extended ? 'true' : 'false'));
+    for (i in settings) {
+      localStorage.setItem('settings', JSON.stringify(settings));
+      return;
     }
-    if (options.proxy != defaults.proxy) {
-      settings.push('"proxy":' + (options.proxy ? 'true' : 'false'));
-    }
-    if (settings.length > 0) {
-      settings = '{' + settings.join(',') + '}';
-      $.cookie('4cat', settings, {
-        expires: 30,
-        path: options.cookiePath,
-        domain: options.cookieDomain
-      });
-    }
-    else {
-      $.cookie('4cat', null, {
-        path: options.cookiePath,
-        domain: options.cookieDomain
-      });
-    }
+    localStorage.removeItem('settings');
   }
   
   fc.setSize = function(size, init) {
@@ -972,7 +963,7 @@ $.fourcat = function(opts) {
       $teaserCtrl.html($teaserCtrl.attr('data-lbl-hide'));
       $('.teaser').css('display', 'block');
       cls = 'extended-';
-      options.extended = 1;
+      options.extended = true;
     }
     else {
       $teaserCtrl.html($teaserCtrl.attr('data-lbl-show'));
@@ -1045,7 +1036,7 @@ $.fourcat = function(opts) {
   });
   
   $teaserCtrl.click(function() {
-    fc.setExtended(options.extended == false ? 1 : false);
+    fc.setExtended(!options.extended);
   });
   
   $proxyCtrl.click(function() {
@@ -1554,51 +1545,3 @@ released under the MIT license
   };
   
 })(jQuery);
-
-/*!
- * Cookie plugin
- * Copyright (c) 2006 Klaus Hartl (stilbuero.de)
- * Dual licensed under the MIT and GPL licenses
- */
-
-jQuery.cookie = function(name, value, options) {
-  if (typeof value != 'undefined') { // name and value given, set cookie
-    options = options || {};
-    if (value === null) {
-      value = '';
-      options.expires = -1;
-    }
-    var expires = '';
-    if (options.expires && (typeof options.expires == 'number' || options.expires.toUTCString)) {
-      var date;
-      if (typeof options.expires == 'number') {
-          date = new Date();
-          date.setTime(date.getTime() + (options.expires * 24 * 60 * 60 * 1000));
-      } else {
-          date = options.expires;
-      }
-      expires = '; expires=' + date.toUTCString(); // use expires attribute, max-age is not supported by IE
-    }
-    // CAUTION: Needed to parenthesize options.path and options.domain
-    // in the following expressions, otherwise they evaluate to undefined
-    // in the packed version for some reason...
-    var path = options.path ? '; path=' + (options.path) : '';
-    var domain = options.domain ? '; domain=' + (options.domain) : '';
-    var secure = options.secure ? '; secure' : '';
-    document.cookie = [name, '=', encodeURIComponent(value), expires, path, domain, secure].join('');
-  } else { // only name given, get cookie
-    var cookieValue = null;
-    if (document.cookie && document.cookie != '') {
-      var cookies = document.cookie.split(';');
-      for (var i = 0; i < cookies.length; i++) {
-        var cookie = jQuery.trim(cookies[i]);
-        // Does this cookie string begin with the name we want?
-        if (cookie.substring(0, name.length + 1) == (name + '=')) {
-          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-          break;
-        }
-      }
-    }
-    return cookieValue;
-  }
-};
