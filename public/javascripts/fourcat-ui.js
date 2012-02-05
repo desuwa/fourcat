@@ -23,6 +23,12 @@ $.fourcat = function(opts) {
     threadsPerPage: 10
   },
   
+  keybinds = {
+    83: toggleQuickfilter, // S
+    82: refreshWindow, // R
+    88: cycleOrder // X
+  },
+  
   catalog = {},
   
   options = {},
@@ -136,6 +142,11 @@ $.fourcat = function(opts) {
     return 0 | (catalog.order.alt.indexOf(tid) / options.threadsPerPage);
   }
   
+  // Requires proper expiration headers
+  function refreshWindow() {
+    location.href = location.href;
+  }
+  
   function toggleQuickfilter() {
     var qfcnt = document.getElementById('qf-cnt');
     if ($qfCtrl.hasClass('active')) {
@@ -176,14 +187,14 @@ $.fourcat = function(opts) {
   }
   
   function bindGlobalShortcuts() {
+    var el, tid;
     if (hasWebStorage && hasNativeJSON) {
-      $threads[0].onclick = function(e) {
-        e = e || window.event;
-        var el = (e.target || e.srcElement);
+      $threads.click(function(e) {
+        el = e.target;
         if (el.className.indexOf('thumb') != -1) {
           if ((e.altKey && !activeTheme.altKey)
             || (e.ctrlKey && activeTheme.altKey)) {
-            var tid = el.getAttribute('data-id');
+            tid = el.getAttribute('data-id');
             if (pinnedThreads[tid] >= 0) {
               delete pinnedThreads[tid];
             }
@@ -192,8 +203,7 @@ $.fourcat = function(opts) {
             }
             localStorage.setItem('pin-' + catalog.slug, JSON.stringify(pinnedThreads));
             fc.buildThreads();
-            if (e.preventDefault) e.preventDefault();
-            else e.returnValue = false;
+            return false;
           }
           else if (e.shiftKey) {
             if (!hiddenThreads) {
@@ -205,11 +215,21 @@ $.fourcat = function(opts) {
             ++hiddenThreadsCount;
             $hiddenCount[0].innerHTML = hiddenThreadsCount;
             $hiddenLabel.show();
-            if (e.preventDefault) e.preventDefault();
-            else e.returnValue = false;
+            return false;
           }
         }
-      };
+      });
+    }
+    $(document).on('keyup', processKeybind);
+  }
+  
+  function processKeybind(e) {
+    var el = e.target;
+    if (el.nodeName == 'TEXTAREA' || el.nodeName == 'INPUT') {
+      return;
+    }
+    if (keybinds[e.keyCode]) {
+      keybinds[e.keyCode]();
     }
   }
   
@@ -1018,12 +1038,8 @@ $.fourcat = function(opts) {
       fc.buildThreads();
     }
   }
-    
-  $sizeCtrl.click(function() {
-    fc.setSize(options.thsize == 'small' ? 'large' : 'small');
-  });
   
-  $orderCtrl.click(function() {
+  function cycleOrder() {
     if (options.orderby == 'date') {
       fc.setOrder('alt');
     }
@@ -1033,7 +1049,13 @@ $.fourcat = function(opts) {
     else {
       fc.setOrder('date');
     }
+  }
+  
+  $sizeCtrl.click(function() {
+    fc.setSize(options.thsize == 'small' ? 'large' : 'small');
   });
+  
+  $orderCtrl.click(cycleOrder);
   
   $teaserCtrl.click(function() {
     fc.setExtended(!options.extended);
