@@ -32,6 +32,7 @@ a {
   color: #000;
   text-decoration: none;
   border-bottom: 1px dotted #555;
+  outline: none;
 }
 
 hr {
@@ -86,12 +87,17 @@ input {
   white-space: nowrap;
 }
 
+.button:focus,
 .button:hover {
   color: #000;
   background-color: #FFA500;
   background-image: -moz-linear-gradient(center top, #ffa500, #e89700);
   background-image: -webkit-linear-gradient(top, #ffa500, #e89700);
   background-image: -o-linear-gradient(top, #ffa500, #e89700);
+}
+
+.button:focus {
+  outline: none;
 }
 
 .clickbox {
@@ -480,6 +486,7 @@ input {
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 }
 
+.thread > a:focus .thumb,
 .thumb:hover {
   border-color: #FFA500;
 }
