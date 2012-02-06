@@ -51,7 +51,7 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
     <span data-tip="Redirect to the archive" id="proxy-ctrl" class="button">Proxy</span>
     <span id="qf-ctrl" class="button">Search</span>
     <span style="display:none" id="qf-cnt">
-      <input type="text" id="qf-box" name="qf-box"><span title="Search (Enter)" id="qf-ok" class="button">&#x2714;</span><span title="Cancel (Escape)" id="qf-clear" class="button">&#x2716;</span>
+      <input type="text" id="qf-box" name="qf-box"><span id="qf-ok" class="button">&#x2714;</span><span id="qf-clear" class="button">&#x2716;</span>
     </span>
   </div>
   <div class="clear"></div>
@@ -192,6 +192,12 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
     <li><span id="theme-magnify" class="button clickbox left"></span>&mdash; Enable thumbnail magnification in compact mode.</li>
     <li><span id="theme-altKey" class="button clickbox left"></span>&mdash; Use <em>Ctrl-click</em> instead of <em>Alt-click</em> to sticky threads.</li>
   </ul>
+  <h4>Keybinds</h4>
+  <ul class="clickset">
+    <li><code>R</code> &mdash; Refresh page</li>
+    <li><code>X</code> &mdash; Reorder threads</li>
+    <li><code>S</code> &mdash; Open search box, <code>Enter</code> to search, <code>Esc</code> to close</li>
+  </ul>
   <h4>Custom <a target="_blank" href="/stylesheets/style.css" title="Reference stylesheet">CSS</a></h4>
   <textarea id="theme-css" rows="4" cols="45"></textarea> 
   <hr>
@@ -216,7 +222,6 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
 <script type="text/javascript">
   $(document).ready(function() {
     $('#topnav').find('.wut').tipsy({gravity: 's'});
-    $('#qf-ok, #qf-clear').tipsy({gravity: 'se'});
     var opts = {
     <% if @opts.content_uri %>
       contentUrl: '<%= @opts.content_uri %>'
