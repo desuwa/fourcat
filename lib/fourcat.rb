@@ -14,7 +14,7 @@ module Fourcat
 
 class Catalog
   
-  VERSION     = '0.9.4'
+  VERSION     = '0.9.5'
   
   TAG_REGEX   = /<[^>]+>/i
   PB_REGEX    = /[\u2028\u2029]/
@@ -533,7 +533,7 @@ class Catalog
   
   # Fetches a page
   # @param [Fixnum] page_num Page number
-  # @see @fetch
+  # @see #fetch
   def get_page(page_num)
     http = Net::HTTP.new(@pages_uri.host, @pages_uri.port)
     http.open_timeout = http.read_timeout = @opts.req_timeout
