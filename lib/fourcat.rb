@@ -47,8 +47,10 @@ class Catalog
     :content_uri      => nil,
     :user_agent       => "4cat/#{VERSION}",
     :spoiler_text     => false,
+    :spoiler_mark     => 'spoiler',
+    :filedeleted_mark => 'filedeleted',
     :threads_pattern  => Regexp.new(
-      '<img src="?(http://[^\s"]+)?[^<]+</a>' <<
+      '<img src="?(http://[^\s"]+)?[^<]+(?:</a>)?' <<
       '<a name="0"></a>\s+<input type=checkbox name="[0-9]+" value=delete>' <<
       '<span class="filetitle">([^<]*)</span>\s+' <<
       '<span class="postername">(.*)</span>\s' <<
@@ -581,7 +583,7 @@ class Catalog
       log_dir = File.join(@opts.approot, 'logs')
       FileUtils.mkdir(log_dir) unless File.directory?(log_dir)
       log_file = File.join(log_dir, "fourcat.#{@opts.slug}.log")
-      @log = Logger.new(log_file, 1, 512000)
+      @log = Logger.new(log_file, 2, 262144)
       @log.level = @opts.loglevel
     end
   end
@@ -958,9 +960,9 @@ class Catalog
       end
       
       # Thumbnail filename or special file (spoiler, 404) [String]
-      if @opts.text_only
+      if @opts.text_only || t[mm[:thumb]].include?(@opts.filedeleted_mark)
         thread[:s] = @thumb_404
-      elsif t[mm[:thumb]].include?('spoiler')
+      elsif t[mm[:thumb]].include?(@opts.spoiler_mark)
         thread[:s] = @spoiler_pic
       end
       
