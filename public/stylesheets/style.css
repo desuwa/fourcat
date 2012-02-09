@@ -212,8 +212,9 @@ input {
 
 /* Board's title */
 #title {
-  font-size: 40px;
+  font-size: 38px;
   font-weight: bold;
+  white-space: nowrap;
 }
 
 /* Info bar: update time, order, etc on the left */
