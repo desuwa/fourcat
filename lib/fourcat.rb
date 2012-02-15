@@ -60,7 +60,7 @@ class Catalog
       '(?:<span class="omittedposts">([0-9]+)[^<0-9]+([0-9]+)?)?'
     ),
     :replies_pattern  => Regexp.new(
-      '<span id="norep[0-9]+"><a href="res/([0-9]+).+</span>(<br>)?'
+      '<span id="norep([0-9]+)"><a href="res/([0-9]+).+</span>(<br>)?'
     ),
     :date_pattern     => Regexp.new(
       '([0-9]{2})/([0-9]{2})/([0-9]{2})[^0-9]+([0-9]{2}):([0-9]{2})'
@@ -99,8 +99,10 @@ class Catalog
     :refresh_delay  => 60,
     :refresh_range  => [60, 300],
     :refresh_step   => 10,
+    :refresh_thres  => nil,
     :teaser_length  => 200,
     :server         => 'http://boards.4chan.org/',
+    :relative_urls  => false,
     :workers_limit  => 3
   }
   
@@ -241,12 +243,19 @@ class Catalog
   #   the refresh delay is reduced by refresh_step. If no new threads were
   #   found the refresh delay is increased by refresh_step. Defaults to 10
   #
+  # @option opts [Integer, nil] refresh_thres
+  #   Reduces the refresh delay by 'refresh_delay' if the number of new replies
+  #   is greater than the 'refresh_thres'. Defaults to nil (disabled)
+  #
   # @option opts [Integer] teaser_length
   #   Excerpt (teaser) character length. 0 disables teaser generation.
   #   Defaults to 200
   #
   # @option opts [String] server
   #   Remote server URL, defaults to 'http://boards.4chan.org/'
+  #
+  # @option opts [true, false] relative_urls
+  #   Use relative urls for thumbnails. Defaults to false.
   #
   # @example Initialize a catalog
   #   catalog = Catalog.new('jp', {
@@ -265,7 +274,7 @@ class Catalog
     
     @opts.slug ||= @board # Local short name for the board
     
-    @opts.title ||= "/#{@board}/ - Catalog"
+    @opts.title ||= "/#{@opts.slug}/ - Catalog"
     
     if @opts.proxy
       @opts.proxy << '/' if @opts.proxy[-1, 1] != '/'
@@ -339,11 +348,15 @@ class Catalog
     # deleted during the next refresh cycle
     @delete_queue = []
     
-    # Highest thread id found
-    @latest_thread = 0
+    # Previous refresh cycle highest thread and reply ids
+    @last_high_thread = 0
+    @last_high_reply = 0
     
     # For stats tracking
     @last_hour = false
+    
+    # For stats tracking and speed adjustment
+    @first_run = true
     
     # Checking for the spoiler file (spoiler-SLUG.png)
     @spoiler_pic =
@@ -425,18 +438,22 @@ class Catalog
   end
   
   # Adjusts the refresh speed
-  # @param [Fixnum] missed Number of new threads since the last refresh cycle
-  def adjust_speed(missed)
-    if missed > 0
-      @opts.refresh_delay -= missed * @opts.refresh_step
-      if @opts.refresh_delay < @opts.refresh_range[0]
-        @opts.refresh_delay = @opts.refresh_range[0]
-      end
+  # @param [Fixnum] new_threads New threads since the last refresh cycle
+  # @param [Fixnum] new_replies New replies since the last refresh cycle
+  def adjust_speed(new_threads, new_replies)
+    if new_threads > 0
+      @opts.refresh_delay -= new_threads * @opts.refresh_step
     else
-      @opts.refresh_delay += @opts.refresh_step
-      if @opts.refresh_delay > @opts.refresh_range[1]
-        @opts.refresh_delay = @opts.refresh_range[1]
+      if @opts.refresh_thres && (new_replies > @opts.refresh_thres)
+        @opts.refresh_delay -= @opts.refresh_step
+      else
+        @opts.refresh_delay += @opts.refresh_step
       end
+    end
+    if @opts.refresh_delay < @opts.refresh_range[0]
+      @opts.refresh_delay = @opts.refresh_range[0]
+    elsif @opts.refresh_delay > @opts.refresh_range[1]
+      @opts.refresh_delay = @opts.refresh_range[1]
     end
   end
   
@@ -446,15 +463,17 @@ class Catalog
     @stats_io.close if @stats_io
   end
   
-  # Counts images and replies
-  # @param [String] html raw HTML to process
+  # Counts images and replies and tracks the highest reply id
+  # @param [String] html page HTML to process
   # @return [Hash]
   def count_replies(html)
     reply_count = { :rep => Hash.new(0), :img => Hash.new(0) }
     replies = html.scan(@opts.replies_pattern)
     replies.each do |r|
-      reply_count[:rep][r[0]] += 1
-      reply_count[:img][r[0]] += 1 if r[1]
+      reply_id = r[0].to_i
+      @this_high_reply = reply_id if reply_id > @this_high_reply
+      reply_count[:rep][r[1]] += 1
+      reply_count[:img][r[1]] += 1 if r[2]
     end
     reply_count
   end
@@ -527,7 +546,12 @@ class Catalog
   # @param [String] url
   # @see #fetch
   def get_image(url)
-    uri = URI.parse(url)
+    if @opts.relative_urls
+      uri = @pages_uri
+      uri.path = url
+    else
+      uri = URI.parse(url)
+    end
     http = Net::HTTP.new(uri.host, uri.port)
     http.open_timeout = http.read_timeout = @opts.req_timeout
     fetch(http, uri.path).body
@@ -606,7 +630,7 @@ class Catalog
       end
       if entry.length > 0
         mtime = entry[0].to_i
-        @latest_thread = entry[1].to_i
+        @last_high_reply = @last_high_thread = entry[1].to_i
       end
     end
     
@@ -703,7 +727,7 @@ class Catalog
     active_workers = 0
     @pages_dropped = 0
     @max_page = nil
-    @spam_count = 0
+    @this_high_reply = @last_high_reply
     
     for run in 0...@opts.page_count.length
       @log.debug "Run #{run}"
@@ -754,7 +778,7 @@ class Catalog
     threadlist = {}
     stickies = []
     natural_order = []
-    missed = 0
+    new_threads = 0
     
     run = threads.length - 1
     while run >= 0
@@ -763,8 +787,8 @@ class Catalog
         page_threads.each do |id, thread|
           next if threadlist.has_key?(id)
           threadlist[id] = thread
-          if id > @latest_thread
-            missed += 1
+          if id > @last_high_thread
+            new_threads += 1
           end
           next if thread[:sticky] && stickies << id
           page_order << id
@@ -776,8 +800,8 @@ class Catalog
     
     # Bailing out on empty threadlist
     if threadlist.empty?
-      adjust_speed(0)
-      update_stats(0) if @opts.stats
+      adjust_speed(0, 0)
+      update_stats(0, 0) if @opts.stats
       return @log.error 'Breaking on empty threadlist'
     end
     
@@ -788,7 +812,13 @@ class Catalog
       threadlist[y][:r] <=> threadlist[x][:r]
     end
     
-    @latest_thread = order[:date][0] || 0
+    @last_high_thread = order[:date][0]
+    if @this_high_reply > @last_high_reply
+      new_replies = @this_high_reply - @last_high_reply
+      @last_high_reply = @this_high_reply
+    else
+      new_replies = 0
+    end
     
     # Fetching thumbnails
     unless @opts.text_only
@@ -842,10 +872,13 @@ class Catalog
       wait_for_workers(workers)
     end
     
-    adjust_speed(missed)
+    unless @first_run
+      adjust_speed(new_threads, new_replies)
+    else
+      @first_run = false
+    end
     
-    @log.debug "Found #{missed} new threads, delay is #{@opts.refresh_delay}"
-    @log.debug "Most recent thread is #{@latest_thread}"
+    @log.debug "Delay is #{@opts.refresh_delay} (#{new_threads}/#{new_replies})"
     
     if @opts.no_partial && @pages_dropped > 0 &&
         (cycle_start - @last_full_cycle).to_i < @opts.refresh_range[1]
@@ -878,7 +911,7 @@ class Catalog
       @json_cache = nil if @json_cache
     end
     
-    update_stats(missed) if @opts.stats
+    update_stats(new_threads, new_replies) if @opts.stats
     
     @log.debug 'Done'
   end
@@ -890,7 +923,9 @@ class Catalog
     if (matches = html.scan(@opts.threads_pattern))[0] == nil
       raise "Pattern: can't find any threads"
     end
+    
     reply_count = count_replies(html)
+    
     threads = {}
     
     mm = @opts.matchmap
@@ -1012,23 +1047,28 @@ class Catalog
   end
   
   # Updates stats
-  # @param [Fixnum] missed Number of new threads since the last refresh cycle
-  def update_stats(missed)
+  # @param [Fixnum] new_threads New threads since the last refresh cycle
+  # @param [Fixnum] new_replies New replies since the last refresh cycle
+  def update_stats(new_threads, new_replies)
     now = Time.now.utc
     if @last_hour
       if @last_hour != now.hour
-        @log.debug 'update_stats: updating daily stats'
         begin
           file = @stats_dir + @opts.slug + '-daily'
           if File.exists?(file)
             stats = JSON.parse(File.open(file, 'r:UTF-8') { |f| f.read })
           else
-            stats = []
+            stats = Hash.new { |h, k| h[k] = Array.new(24, 0) }
           end
-          stats[@last_hour] = 0
+          stats['threads'][@last_hour] = 0
+          stats['replies'][@last_hour] = 0
           @stats_io.rewind
           lines = @stats_io.read.split("\n")
-          lines.map { |val| stats[@last_hour] += val.split(':')[2].to_i }
+          lines.map do |line|
+            vals = line.split(':')
+            stats['threads'][@last_hour] += vals[2].to_i
+            stats['replies'][@last_hour] += vals[3].to_i
+          end
           File.open(file, 'w:UTF-8') { |f| f.write(stats.to_json) }
         rescue StandardError => e
           @log.error 'update_stats: daily: ' << get_error(e)
@@ -1036,14 +1076,12 @@ class Catalog
           @stats_io.reopen(@stats_io.path, 'w+')
         end
       end
-      if missed > 0
-        begin
-          @log.debug "update_stats: adding #{missed} missed thread(s)"
-          @stats_io.write("#{now.to_i}:#{@latest_thread}:#{missed}\n")
-          @stats_io.flush
-        rescue StandardError => e
-          @log.error 'update_stats: current: ' << get_error(e)
-        end
+      begin
+        line = "#{now.to_i}:#{@last_high_reply}:#{new_threads}:#{new_replies}\n"
+        @stats_io.write(line)
+        @stats_io.flush
+      rescue StandardError => e
+        @log.error 'update_stats: current: ' << get_error(e)
       end
     else
       @log.debug 'update_stats: skipping first run'
@@ -1164,7 +1202,7 @@ class Catalog
 
 end
 
-# Raised on HTTP resonses other than 200 and 404
+# Raised on HTTP responses other than 200 and 404
 class HTTPError < StandardError; end
 
 # Raised on HTTP 404
