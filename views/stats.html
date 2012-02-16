@@ -27,24 +27,28 @@
     <li class="button" data-slug="jp">/jp/</li>
   </ul>
   <div id="stats-threads" class="chart"></div>
+  <div id="stats-replies" class="chart"></div>
 </div>
 
 <script type="text/javascript">
   var
-    chart,
+    charts = {},
     stats = <%= @output %>;
   
   function plotSelectedBoards() {
-    var data = {}, $active = $('#statnav').find('.active');
+    var
+      data = { threads: {}, replies: {} },
+      $active = $('#statnav').find('.active');
     
     $active.each(function() {
       var slug = this.getAttribute('data-slug');
       if (stats[slug]) {
-        data[slug] = stats[slug];
+        data.threads[slug] = stats[slug].threads;
+        data.replies[slug] = stats[slug].replies;
       }
     });
-    
-    plotStats(data, chart);
+    plotStats(data.threads, charts.threads);
+    plotStats(data.replies, charts.replies, { v: 'New Replies' });
   }
   
   google.load('visualization', '1', { packages:['corechart'] });
@@ -65,8 +69,11 @@
       $('#statnav').find('li:first').addClass('active');
     }
     
-    chart = new google.visualization.LineChart(
+    charts.threads = new google.visualization.LineChart(
       document.getElementById('stats-threads')
+    );
+    charts.replies = new google.visualization.LineChart(
+      document.getElementById('stats-replies')
     );
     
     $('#statnav').on('click', 'li', function() {

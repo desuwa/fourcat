@@ -14,7 +14,7 @@ module Fourcat
 
 class Catalog
   
-  VERSION     = '0.9.6'
+  VERSION     = '0.9.7'
   
   TAG_REGEX   = /<[^>]+>/i
   PB_REGEX    = /[\u2028\u2029]/
