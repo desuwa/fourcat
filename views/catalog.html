@@ -22,11 +22,10 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
 <div id="header">
   <h1 id="title"><%= @opts.title %></h1>
   <ul id="topnav">
-    <li><a class="button" href="/">Home</a></li><li class="sep">|</li>
-    <% if @opts.stats %>
+    <li><a class="button" href="/">Home</a></li>
+    <li class="sep">|</li><% if @opts.stats %>
     <li><a class="button" href="/stats.html">Stats</a></li>
-    <li class="sep">|</li>
-    <% end %>
+    <li class="sep">|</li><% end %>
     <li><a class="button" href="/a/">/a/</a></li>
     <li><a class="button" href="/jp/">/jp/</a></li>
     <li class="sep">|</li>
