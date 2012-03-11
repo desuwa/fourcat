@@ -213,7 +213,8 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
 </div>
 <noscript>
   <div id="nojs">
-    <span>Your web browser must have JavaScript enabled in order for this site to display correctly.</span>
+    <span>Your web browser must have JavaScript enabled in order for this site to display correctly.<% if @opts.write_rss %>
+    <a href="/<%= @opts.slug %>/feed.rss">RSS feed</a> available.<% end %></span>
   </div>
 </noscript>
 <menu type="context" id="ctxmenu-main">

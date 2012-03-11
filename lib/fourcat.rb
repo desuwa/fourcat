@@ -90,7 +90,7 @@ class Catalog
       :orep   => 7,
       :oimg   => 8
     },
-    :utc_offset     => Time.zone_offset('EST'),
+    :utc_offset     => Time.zone_offset('EDT'),
     :req_delay      => 1.2,
     :req_timeout    => 10,
     :retries        => 2,

@@ -582,8 +582,8 @@ input {
   width: 100%;
   height: 100%;
   z-index: 99;
-  opacity: 0.7;
-  filter:alpha(opacity=70);
+  opacity: 0.85;
+  filter:alpha(opacity=85);
 }
 
 #nojs > span {
@@ -591,8 +591,12 @@ input {
   background-color: #8C92AC;
   padding: 5px;
   position: relative;
-  top: 45%;
-  font-size: 25px;
+  top: 35%;
+  font-size: 22px;
+}
+
+#nojs a {
+  color: #fff;
 }
 
 #donate input {
