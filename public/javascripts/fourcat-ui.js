@@ -220,7 +220,9 @@ $.fourcat = function(opts) {
         }
       });
     }
-    $(document).on('keyup', processKeybind);
+    if (!activeTheme.nobinds) {
+      $(document).on('keyup', processKeybind);
+    }
   }
   
   function processKeybind(e) {
@@ -748,7 +750,7 @@ $.fourcat = function(opts) {
     
     if ($filtersPanel.css('display') == 'none') {
       var
-        buttons = ['notipsy', 'magnify', 'altKey'],
+        buttons = ['notipsy', 'magnify', 'altKey', 'nobinds'],
         theme = localStorage.getItem('theme');
       
       theme = theme ? JSON.parse(theme) : {};
@@ -766,7 +768,7 @@ $.fourcat = function(opts) {
         document.getElementById('theme-css').value = theme.css;
       }
       
-      $('#theme-notipsy, #theme-magnify, #theme-altKey')
+      $('#theme-' + buttons.join(', #theme-'))
         .click(function() { toggleButton($(this)) });
       
       $('#theme-save').click(saveTheme);
@@ -778,8 +780,9 @@ $.fourcat = function(opts) {
   }
   
   function closeThemeEditor() {    
-    $('#theme-save, #theme-close, #theme-notipsy, #theme-magnify, #theme-altKey')
-      .off('click');
+    var buttons = ['save', 'close', 'notipsy', 'magnify', 'altKey', 'nobinds'];
+    
+    $('#theme-' + buttons.join(', #theme-')).off('click');
     $themePanel.hide();
   }
   
@@ -805,7 +808,7 @@ $.fourcat = function(opts) {
       }
     }
     else {
-      if (activeTheme.notipsy != customTheme.notipsy) {
+      if (customTheme.notipsy != activeTheme.notipsy ) {
         $thumbs.tipsy(tipopts);
       }
     }
@@ -823,6 +826,17 @@ $.fourcat = function(opts) {
         $thumbs
           .off('mouseenter.scale')
           .off('mouseleave.scale');
+      }
+    }
+    
+    if (customTheme.nobinds) {
+      if (activeTheme.nobinds != customTheme.nobinds) {
+        $(document).off('keyup', processKeybind);
+      }
+    }
+    else {
+      if (activeTheme.nobinds != customTheme.nobinds) {
+        $(document).on('keyup', processKeybind);
       }
     }
     
@@ -862,6 +876,10 @@ $.fourcat = function(opts) {
     
     if ($('#theme-altKey').hasClass('active')) {
       customTheme.altKey = true;
+    }
+    
+    if ($('#theme-nobinds').hasClass('active')) {
+      customTheme.nobinds = true;
     }
     
     if ((css = document.getElementById('theme-css').value) != '') {
@@ -1257,11 +1275,11 @@ $.fourcat = function(opts) {
     options = defaults;
   }
   
-  bindGlobalShortcuts();
-  
   fc.loadSettings();
   fc.loadTheme();
   fc.loadFilters();
+  
+  bindGlobalShortcuts();
   
   fc.setSize(options.thsize, true);
   fc.setOrder(options.orderby, true);
