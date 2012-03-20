@@ -50,7 +50,7 @@ class Catalog
     :spoiler_mark     => 'spoiler',
     :filedeleted_mark => 'filedeleted',
     :threads_pattern  => Regexp.new(
-      '<img src="?(http://[^\s"]+)?[^<]+(?:</a>)?' <<
+      '<img src="?([^\s"]+)?[^<]+(?:</a>)?' <<
       '<a name="0"></a>\s+<input type=checkbox name="[0-9]+" value=delete>' <<
       '<span class="filetitle">([^<]*)</span>\s+' <<
       '<span class="postername">(.*)</span>\s' <<
