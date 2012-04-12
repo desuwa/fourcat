@@ -122,6 +122,7 @@ $.fourcat = function(opts) {
   
   fc.loadCatalog = function(c) {
     catalog = c;
+    setSSL(activeTheme.usessl);
     fc.loadStorage();
     updateTime();
     $refresh[0].setAttribute('data-tip', $refresh[0].getAttribute('data-label')
@@ -131,6 +132,18 @@ $.fourcat = function(opts) {
     centerThreads();
     clearInterval(pulseInterval);
     pulseInterval = setInterval(updateTime, 10000);
+  }
+  
+  function setSSL(val) {
+    if (val === undefined) {
+      return;
+    }
+    if (val) {
+      catalog.server = catalog.server.replace(/^http:/, 'https:');
+    }
+    else {
+      catalog.server = catalog.server.replace(/^https:/, 'http:');
+    }
   }
   
   function getRegexSpecials() {
@@ -750,7 +763,7 @@ $.fourcat = function(opts) {
     
     if ($filtersPanel.css('display') == 'none') {
       var
-        buttons = ['notipsy', 'magnify', 'altKey', 'nobinds'],
+        buttons = ['notipsy', 'magnify', 'altKey', 'nobinds', 'usessl'],
         theme = localStorage.getItem('theme');
       
       theme = theme ? JSON.parse(theme) : {};
@@ -780,7 +793,8 @@ $.fourcat = function(opts) {
   }
   
   function closeThemeEditor() {    
-    var buttons = ['save', 'close', 'notipsy', 'magnify', 'altKey', 'nobinds'];
+    var buttons =
+      ['save', 'close', 'notipsy', 'magnify', 'altKey', 'nobinds', 'usessl'];
     
     $('#theme-' + buttons.join(', #theme-')).off('click');
     $themePanel.hide();
@@ -794,6 +808,7 @@ $.fourcat = function(opts) {
     if (!customTheme) return;
     
     activeTheme = $.parseJSON(customTheme);
+    
     applyTheme(activeTheme);
   }
   
@@ -880,6 +895,14 @@ $.fourcat = function(opts) {
     
     if ($('#theme-nobinds').hasClass('active')) {
       customTheme.nobinds = true;
+    }
+    
+    if ($('#theme-usessl').hasClass('active')) {
+      customTheme.usessl = true;
+    }
+    if (customTheme.usessl != activeTheme.usessl) {
+      setSSL(!!customTheme.usessl);
+      fc.buildThreads();
     }
     
     if ((css = document.getElementById('theme-css').value) != '') {
