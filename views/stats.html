@@ -60,10 +60,8 @@
       document.getElementById('stats-threads').innerHTML = 'No data';
     }
     
-    if (ref = document.referrer.match(/\/([a-z0-9]+)\/$/)) {
-      if (stats[ref[1]]) {
-        $('#statnav').find('li[data-slug="' + ref[1] + '"]').addClass('active');
-      }
+    if ((ref = document.referrer.match(/\/([a-z0-9]+)\/$/)) && stats[ref[1]]) {
+      $('#statnav').find('li[data-slug="' + ref[1] + '"]').addClass('active');
     }
     else {
       $('#statnav').find('li:first').addClass('active');
