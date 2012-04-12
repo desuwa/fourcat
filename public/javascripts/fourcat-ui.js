@@ -1133,6 +1133,10 @@ $.fourcat = function(opts) {
     
     hiddenThreadsCount = 0;
     
+    for (fid in activeFilters) {
+      activeFilters[fid].hits = 0;
+    }
+    
     threadloop: for (i = 0; i < catalog.count; ++i) {
       id = catalog.order[options.orderby][i];
       entry = catalog.threads[id];
