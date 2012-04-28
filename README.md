@@ -96,3 +96,12 @@ You will need to set the `web_uri` option to point to your catalog's base URL.
 
 Track statistics.
 This doesn't generate any HTML, you will need to set up a cron task to run `make_stats.rb` for that.
+
+***
+
+> **Symbol**: `spoiler_text`  
+  **Type**: true, false  
+  **Default**: `false`
+
+Hide spoilered text in the catalog.
+
