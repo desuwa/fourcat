@@ -50,25 +50,35 @@ class Catalog
     :spoiler_mark     => 'spoiler',
     :filedeleted_mark => 'filedeleted',
     :threads_pattern  => Regexp.new(
-      '<img src="?([^\s"]+)?[^<]+(?:</a>)?' <<
-      '<a name="0"></a>\s+<input type=checkbox name="[0-9]+" value=delete>' <<
-      '<span class="filetitle">([^<]*)</span>\s+' <<
-      '<span class="postername">(.*)</span>\s' <<
-      '<span class="posttime">([^<]+)</span>\s' <<
-      '([^\[]+)\[<a href="res/([0-9]+)">Reply</a>\]</span>\s' <<
-      '<blockquote>(.*)</blockquote>' <<
-      '(?:<span class="omittedposts">([0-9]+)[^<0-9]+([0-9]+)?)?'
+      '<div id="p([0-9]+)" class="post op">' <<
+      '(?:.*?<a class="fileThumb.*?<img src="([^"]+)")?' <<
+      '.*?<span class="subject">([^<]*)' <<
+      '.*?<span class="nameBlock[^"]*">\s+([^\n]+)' <<
+      '.*?<span class="dateTime">([^<]+)' <<
+      '.*?Quote this post(.*?)\[<a' <<
+      '.*?<blockquote class="postMessage" id="m[0-9]+">(.*?)</blockquote>' <<
+      '.*?<span class="info">' <<
+      '(?:\s*<strong>([0-9]+)[^<]+</strong>(?:<br /><em>\(([0-9]+))?)?',
+      Regexp::MULTILINE
     ),
     :replies_pattern  => Regexp.new(
-      '<span id="norep([0-9]+)"><a href="res/([0-9]+).+</span>(<br>)?'
+      '<span class="postNum desktop">\s+<a href="res/([0-9]+)#p([0-9]+)' <<
+      '.*?</div>\s+(<div class="file")?',
+      Regexp::MULTILINE
     ),
     :date_pattern     => Regexp.new(
       '([0-9]{2})/([0-9]{2})/([0-9]{2})[^0-9]+([0-9]{2}):([0-9]{2})'
     ),
     :pages_pattern    => Regexp.new(
-      '\[<a href="[0-9]{1,2}">([0-9]{1,2})</a>\] '
+      '\[(?:<a href="[0-9]{1,2}">|<strong>)([0-9]{1,2})(?:</a>|</strong>)\] '
     ),
     :spoiler_xpath    => './span[@class="spoiler"]',
+    :repliesmap =>
+    {
+      :tid    => 0,
+      :pid    => 1,
+      :img    => 2
+    },
     :datemap =>
     {
       :year   => 2,
@@ -80,12 +90,12 @@ class Catalog
     },
     :matchmap =>
     {
-      :thumb  => 0,
-      :title  => 1,
-      :author => 2,
-      :date   => 3,
-      :status => 4,
-      :id     => 5,
+      :id     => 0,
+      :thumb  => 1,
+      :title  => 2,
+      :author => 3,
+      :date   => 4,
+      :status => 5,
       :body   => 6,
       :orep   => 7,
       :oimg   => 8
@@ -469,11 +479,12 @@ class Catalog
   def count_replies(html)
     reply_count = { :rep => Hash.new(0), :img => Hash.new(0) }
     replies = html.scan(@opts.replies_pattern)
+    rm = @opts.repliesmap
     replies.each do |r|
-      reply_id = r[0].to_i
+      reply_id = r[rm[:pid]].to_i
       @this_high_reply = reply_id if reply_id > @this_high_reply
-      reply_count[:rep][r[1]] += 1
-      reply_count[:img][r[1]] += 1 if r[2]
+      reply_count[:rep][r[rm[:tid]]] += 1
+      reply_count[:img][r[rm[:tid]]] += 1 if r[rm[:img]]
     end
     reply_count
   end
@@ -920,7 +931,7 @@ class Catalog
   # @param [String] html raw HTML to process
   # @return [Hash{thread_id(Integer) => Hash}] a Hash of threads
   def scan_threads(html)
-    if (matches = html.scan(@opts.threads_pattern))[0] == nil
+    unless (matches = html.scan(@opts.threads_pattern))[0]
       raise "Pattern: can't find any threads"
     end
     
@@ -931,17 +942,14 @@ class Catalog
     mm = @opts.matchmap
     dm = @opts.datemap
     
-    matches.each do |t|
-      # Skipping threads with no image
-      next if t[mm[:thumb]] == nil
-      
+    matches.each do |t|      
       thread = {}
       
       # Link to thread
       thread[:href] = link_to_thread(t[mm[:id]])
       
       # Sticky thread? [true, false]
-      thread[:sticky] = t[mm[:status]].include?('sticky') if mm[:status] != nil
+      thread[:sticky] = t[mm[:status]].include?('sticky') if t[mm[:status]]
       
       # Title [String]
       t[mm[:title]].gsub!(TAG_REGEX, '')
@@ -995,7 +1003,8 @@ class Catalog
       end
       
       # Thumbnail filename or special file (spoiler, 404) [String]
-      if @opts.text_only || t[mm[:thumb]].include?(@opts.filedeleted_mark)
+      if !t[mm[:thumb]] || @opts.text_only ||
+          t[mm[:thumb]].include?(@opts.filedeleted_mark)
         thread[:s] = @thumb_404
       elsif t[mm[:thumb]].include?(@opts.spoiler_mark)
         thread[:s] = @spoiler_pic
