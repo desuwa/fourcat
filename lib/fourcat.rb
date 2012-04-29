@@ -51,11 +51,11 @@ class Catalog
     :filedeleted_mark => 'filedeleted',
     :threads_pattern  => Regexp.new(
       '<div id="p([0-9]+)" class="post op">' <<
-      '(?:.*?<a class="fileThumb.*?<img src="([^"]+)")?' <<
+      '.*?<span class="dateTime">([^<]+)</span>\s*</div>\s*' <<
+      '(?:<div class="file".*?class="fileThumb[^<]+<img src="([^"]+)")?' <<
       '.*?<span class="subject">([^<]*)' <<
       '.*?<span class="nameBlock[^"]*">\s+([^\n]+)' <<
-      '.*?<span class="dateTime">([^<]+)' <<
-      '.*?Quote this post(.*?)\[<a' <<
+      '.*?Quote this post([^\[]+)\[<a' <<
       '.*?<blockquote class="postMessage" id="m[0-9]+">(.*?)</blockquote>' <<
       '.*?<span class="info">' <<
       '(?:\s*<strong>([0-9]+)[^<]+</strong>(?:<br /><em>\(([0-9]+))?)?',
@@ -91,10 +91,10 @@ class Catalog
     :matchmap =>
     {
       :id     => 0,
-      :thumb  => 1,
-      :title  => 2,
-      :author => 3,
-      :date   => 4,
+      :date   => 1,
+      :thumb  => 2,
+      :title  => 3,
+      :author => 4,
       :status => 5,
       :body   => 6,
       :orep   => 7,
@@ -960,7 +960,7 @@ class Catalog
         if @opts.spoiler_text && !t[mm[:body]].empty?
           t[mm[:body]].gsub!(/\[\/spoiler\]/, BB_TAGS)
           frag = Nokogiri::HTML.fragment(t[mm[:body]], 'utf-8')
-          nodes = frag.xpath('./span[@class="spoiler"]')
+          nodes = frag.xpath(@opts.spoiler_xpath)
           if nodes.empty?
             has_spoilers = false
             t[mm[:body]]
