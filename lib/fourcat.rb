@@ -67,7 +67,8 @@ class Catalog
       Regexp::MULTILINE
     ),
     :date_pattern     => Regexp.new(
-      '([0-9]{2})/([0-9]{2})/([0-9]{2})[^0-9]+([0-9]{2}):([0-9]{2})'
+      '([0-9]{2})/([0-9]{2})/([0-9]{2})[^0-9]+' <<
+      '([0-9]{2}):([0-9]{2})(?::([0-9]{2}))?'
     ),
     :pages_pattern    => Regexp.new(
       '\[(?:<a href="[0-9]{1,2}">|<strong>)([0-9]{1,2})(?:</a>|</strong>)\] '
@@ -86,7 +87,7 @@ class Catalog
       :day    => 1,
       :hour   => 3,
       :minute => 4,
-      :second => nil
+      :second => 5
     },
     :matchmap =>
     {
@@ -1037,7 +1038,7 @@ class Catalog
         @log.error "Pattern: can't find the date"
         thread[:date] = Time.now.utc
       else
-        d[dm[:year]] = (d[dm[:year]].to_i + 2000) if d[dm[:year]][3] == nil
+        d[dm[:year]] = (d[dm[:year]].to_i + 2000) unless d[dm[:year]][3]
         thread[:date] =
           Time.utc(
             d[dm[:year]],
@@ -1045,7 +1046,7 @@ class Catalog
             d[dm[:day]],
             d[dm[:hour]],
             d[dm[:minute]],
-            dm[:second] ? d[dm[:second]] : nil
+            d[dm[:second]]
           ) - @opts.utc_offset
       end
       
