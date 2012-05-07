@@ -47,6 +47,17 @@ code {
   color: #000;
 }
 
+kbd {
+  background-color: #f7f7f7;
+  border: 1px solid #ccc;
+  border-radius: 3px 3px 3px 3px;
+  box-shadow: 0 1px 0 #ccc, 0 0 0 2px #fff inset;
+  font-family: monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 0 5px;
+}
+
 p {
   margin-bottom: 15px;
 }
