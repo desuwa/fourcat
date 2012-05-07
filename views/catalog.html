@@ -26,8 +26,9 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
     <li class="sep">|</li><% if @opts.stats %>
     <li><a class="button" href="/stats.html">Stats</a></li>
     <li class="sep">|</li><% end %>
-    <li><a class="button" href="/a/">/a/</a></li>
-    <li><a class="button" href="/jp/">/jp/</a></li>
+    <li class="slug"><a class="button" href="/a/">/a/</a></li>
+    <li class="slug"><a class="button" href="/jp/">/jp/</a></li>
+    <!--<li id="more-slugs-btn"><span class="button">…</span></li>-->
     <li class="sep">|</li>
     <li><a class="wut button" target="_blank" data-tip="/<%= @opts.slug %>/ on 4chan" href="http://boards.4chan.org/<%= @board %>/"><img alt="" src="/images/4chan.png"></a></li>
     <% if @opts.write_rss %>
@@ -199,6 +200,9 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
     <li><code>X</code> &mdash; Reorder threads</li>
     <li><code>S</code> &mdash; Open search box, <code>Enter</code> to search, <code>Esc</code> to close</li>
   </ul>
+  <!--<h4>Custom Menu</h4>
+  <div>Example: <em>jp tg mu</em></div>
+  <input type="text" id="theme-menu">-->
   <h4>Custom <a target="_blank" href="/stylesheets/style.css" title="Reference stylesheet">CSS</a></h4>
   <textarea id="theme-css" rows="4" cols="45"></textarea> 
   <hr>

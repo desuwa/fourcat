@@ -764,6 +764,7 @@ $.fourcat = function(opts) {
     if ($filtersPanel.css('display') == 'none') {
       var
         buttons = ['notipsy', 'magnify', 'altKey', 'nobinds', 'usessl'],
+        menu,
         theme = localStorage.getItem('theme');
       
       theme = theme ? JSON.parse(theme) : {};
@@ -775,6 +776,10 @@ $.fourcat = function(opts) {
         else {
           disableButton($('#theme-' + buttons[i]));
         }
+      }
+      
+      if (theme.menu && (menu = document.getElementById('theme-menu'))) {
+        menu.value = theme.menu;
       }
       
       if (theme.css) {
@@ -800,6 +805,30 @@ $.fourcat = function(opts) {
     $themePanel.hide();
   }
   
+  function resetCustomMenu() {
+    var i, j, nav, slugs, more;
+    
+    if (!document.getElementsByClassName) {
+      return;
+    }
+    
+    nav = document.getElementById('topnav');
+    nav.style.display = 'none';
+    
+    slugs = nav.getElementsByClassName('slug');
+    
+    for (i = 0, j = slugs.length; i < j; ++i) {
+      slugs[i].style.display = 'inline';
+    }
+    
+    if (more = document.getElementById('more-slugs-btn')) {
+      more.style.display = 'none';
+      more.removeEventListener('click', resetCustomMenu, false);
+    }
+    
+    nav.style.display = 'block';
+  }
+  
   fc.loadTheme = function() {
     if (!hasWebStorage) return;
     
@@ -813,8 +842,48 @@ $.fourcat = function(opts) {
   }
   
   function applyTheme(customTheme) {
-    var style;
-      
+    var i, j, header, nav, slugs, slughash, hasHidden, style, more;
+    
+    if (customTheme.menu) {
+      if (document.getElementsByClassName) {
+        slugs = customTheme.menu.split(' ');
+        slughash = {};
+        for (i = 0, j = slugs.length; i < j; ++i) {
+          slughash['/' + slugs[i] + '/'] = true;
+        }
+        
+        nav = document.getElementById('topnav');
+        nav.style.display = 'none';
+        
+        slugs = nav.getElementsByClassName('slug');
+        
+        for (i = 0, j = slugs.length; i < j; ++i) {
+          if (!slughash[slugs[i].firstChild.textContent]) {
+            slugs[i].style.display = 'none';
+            hasHidden = true;
+          }
+          else {
+            slugs[i].style.display = 'inline';
+          }
+        }
+        
+        if (more = document.getElementById('more-slugs-btn')) {
+          if (hasHidden) {
+            more.addEventListener('click', resetCustomMenu, false);
+            more.style.display = 'inline';
+          }
+          else {
+            more.style.display = 'none';
+          }
+        }
+        
+        nav.style.display = 'block';
+      }
+    }
+    else if (customTheme.menu != activeTheme.menu) {
+      resetCustomMenu();
+    }
+    
     if (customTheme.notipsy) {
       if (customTheme.notipsy != activeTheme.notipsy) {
         $thumbs
@@ -879,7 +948,7 @@ $.fourcat = function(opts) {
   
   // Applies and saves the theme to localStorage
   function saveTheme() {
-    var css, style, rebuild, customTheme = {};
+    var menu, css, style, customTheme = {};
     
     if ($('#theme-notipsy').hasClass('active')) {
       customTheme.notipsy = true;
@@ -903,6 +972,11 @@ $.fourcat = function(opts) {
     if (customTheme.usessl != activeTheme.usessl) {
       setSSL(!!customTheme.usessl);
       fc.buildThreads();
+    }
+    
+    menu = document.getElementById('theme-menu');
+    if (menu && (menu.value != '')) {
+      customTheme.menu = menu.value;
     }
     
     if ((css = document.getElementById('theme-css').value) != '') {

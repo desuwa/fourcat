@@ -294,6 +294,10 @@ input {
   padding-bottom: 2px;
 }
 
+#topnav #more-slugs-btn {
+  display: none;
+}
+
 #rss a {
   border: none;
   padding: 2px 4px;
@@ -317,6 +321,11 @@ input {
   top: 70px;
   left: 50%;
   margin-left: -178px;
+}
+
+#theme-menu {
+  margin-top: 5px;
+  width: 100%;
 }
 
 #theme-css {
