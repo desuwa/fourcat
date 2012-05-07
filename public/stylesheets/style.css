@@ -225,7 +225,7 @@ input {
 #title {
   font-size: 38px;
   font-weight: bold;
-  white-space: nowrap;
+  word-wrap: break-word;
 }
 
 /* Info bar: update time, order, etc on the left */
@@ -334,6 +334,13 @@ input {
   margin-left: -178px;
 }
 
+@media all and (max-width: 365px) {
+  #theme {
+    left: 0;
+    margin-left: 0;
+  }
+}
+
 #theme-menu {
   margin-top: 5px;
   width: 100%;
@@ -360,6 +367,13 @@ input {
   margin-left: -193px;
 }
 
+@media all and (max-width: 395px) {
+  #filters {
+    left: 0;
+    margin-left: 0;
+  }
+}
+
 #filters .clickbox {
   margin: auto;
 }
@@ -368,9 +382,16 @@ input {
 #filters-protip {
   padding: 10px;
   width: 570px;
-  top: -10px;
+  top: 50px;
   left: 50%;
   margin-left: -295px;
+}
+
+@media all and (max-width: 605px) {
+  #filters-protip {
+    left: 0;
+    margin-left: 0;
+  }
 }
 
 #filters-protip ul {
@@ -649,6 +670,10 @@ input {
 
 #statnav li {
   display: inline;
+}
+
+#statnav .button {
+  margin: 0;
 }
 
 .chart {
