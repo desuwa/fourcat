@@ -62,8 +62,8 @@ class Catalog
       Regexp::MULTILINE
     ),
     :replies_pattern  => Regexp.new(
-      '<span class="postNum desktop">\s+<a href="res/([0-9]+)#p([0-9]+)' <<
-      '.*?</div>\s+(<div class="file")?',
+      '<span class="postNum desktop"><a href="res/([0-9]+)#p([0-9]+)' <<
+      '.*?</div>(<div class="file")?',
       Regexp::MULTILINE
     ),
     :date_pattern     => Regexp.new(
