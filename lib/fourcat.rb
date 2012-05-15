@@ -14,7 +14,7 @@ module Fourcat
 
 class Catalog
   
-  VERSION     = '0.9.9'
+  VERSION     = '0.9.10'
   
   TAG_REGEX   = /<[^>]+>/i
   PB_REGEX    = /[\u2028\u2029]/
@@ -51,7 +51,7 @@ class Catalog
     :filedeleted_mark => 'filedeleted',
     :threads_pattern  => Regexp.new(
       '<div id="p([0-9]+)" class="post op">' <<
-      '.*?<span class="dateTime"[^>]+>([^<]+)</span>\s*</div>\s*' <<
+      '.*?<span class="dateTime" data-utc="([0-9]+)">[^<]+</span></div>' <<
       '(?:<div class="file".*?class="fileThumb[^<]+<img src="([^"]+)")?' <<
       '.*?<span class="subject">([^<]*)' <<
       '.*?<span class="nameBlock[^"]*">(.*?)<span class="dateTime' <<
@@ -66,10 +66,6 @@ class Catalog
       '.*?</div>(<div class="file")?',
       Regexp::MULTILINE
     ),
-    :date_pattern     => Regexp.new(
-      '([0-9]{2})/([0-9]{2})/([0-9]{2})[^0-9]+' <<
-      '([0-9]{2}):([0-9]{2})(?::([0-9]{2}))?'
-    ),
     :pages_pattern    => Regexp.new(
       '\[(?:<a href="[0-9]{1,2}">|<strong>)([0-9]{1,2})(?:</a>|</strong>)\] '
     ),
@@ -79,15 +75,6 @@ class Catalog
       :tid    => 0,
       :pid    => 1,
       :img    => 2
-    },
-    :datemap =>
-    {
-      :year   => 2,
-      :month  => 0,
-      :day    => 1,
-      :hour   => 3,
-      :minute => 4,
-      :second => 5
     },
     :matchmap =>
     {
@@ -101,7 +88,6 @@ class Catalog
       :orep   => 7,
       :oimg   => 8
     },
-    :utc_offset     => Time.zone_offset('EDT'),
     :req_delay      => 1.2,
     :req_timeout    => 10,
     :retries        => 2,
@@ -595,8 +581,10 @@ class Catalog
     data.force_encoding(Encoding::UTF_8)
     
     unless data.valid_encoding?
-      @log.debug("Repacking invalid UTF-8 string: #{path}")
-      data = data.unpack('C*').pack('U*')
+      @log.debug("Re-encoding invalid UTF-8 string: #{path}")
+      data.encode!('UTF-8', 'UTF-8', {
+        :invalid => :replace, :undef => :replace, :replace => ''
+      })
     end
     
     data
@@ -1032,23 +1020,7 @@ class Catalog
       end
       
       # Date UTC [Time]
-      d = t[mm[:date]].scan(@opts.date_pattern)[0]
-      
-      if (d == nil)
-        @log.error "Pattern: can't find the date"
-        thread[:date] = Time.now.utc
-      else
-        d[dm[:year]] = (d[dm[:year]].to_i + 2000) unless d[dm[:year]][3]
-        thread[:date] =
-          Time.utc(
-            d[dm[:year]],
-            d[dm[:month]],
-            d[dm[:day]],
-            d[dm[:hour]],
-            d[dm[:minute]],
-            d[dm[:second]]
-          ) - @opts.utc_offset
-      end
+      thread[:date] = Time.at(t[mm[:date]].to_i)
       
       threads[t[mm[:id]].to_i] = thread
     end
