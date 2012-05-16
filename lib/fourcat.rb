@@ -50,11 +50,11 @@ class Catalog
     :spoiler_mark     => 'spoiler',
     :filedeleted_mark => 'filedeleted',
     :threads_pattern  => Regexp.new(
-      '<div id="p([0-9]+)" class="post op">' <<
-      '.*?<span class="dateTime" data-utc="([0-9]+)">[^<]+</span></div>' <<
+      '<div id="p([0-9]+)" class="post op"><div.*?</div>' <<
       '(?:<div class="file".*?class="fileThumb[^<]+<img src="([^"]+)")?' <<
-      '.*?<span class="subject">([^<]*)' <<
-      '.*?<span class="nameBlock[^"]*">(.*?)<span class="dateTime' <<
+      '.*?<span class="subject">([^<]*)</span> ' <<
+      '<span class="nameBlock[^"]*">(.*?)' <<
+      '<span class="dateTime" data-utc="([0-9]+)">' <<
       '.*?Quote this post([^\[]+)\[<a' <<
       '.*?<blockquote class="postMessage" id="m[0-9]+">(.*?)</blockquote>' <<
       '.*?<span class="info">' <<
@@ -79,10 +79,10 @@ class Catalog
     :matchmap =>
     {
       :id     => 0,
-      :date   => 1,
-      :thumb  => 2,
-      :title  => 3,
-      :author => 4,
+      :thumb  => 1,
+      :title  => 2,
+      :author => 3,
+      :date   => 4,
       :status => 5,
       :body   => 6,
       :orep   => 7,
