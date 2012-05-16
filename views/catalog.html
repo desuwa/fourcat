@@ -14,7 +14,7 @@
   <link rel="stylesheet" type="text/css" href="/stylesheets/style.css">
   <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
 </head>
-<body contextmenu="ctxmenu-main">
+<body>
 <!--<div id="protip"></div>-->
 <script type="text/javascript">
 var catalog = <%= jsonify_threads(threadlist, order) %>;
@@ -199,6 +199,7 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
     <li><kbd>R</kbd> &mdash; Refresh current page</li>
     <li><kbd>X</kbd> &mdash; Reorder threads</li>
     <li><kbd>S</kbd> &mdash; Open search box, <kbd>Enter</kbd> to search, <kbd>Esc</kbd> to close</li>
+    <li><kbd class="nu" title="Right Mouse Button">RMB</kbd> &mdash; Threads context menu (Firefox only)</li>
   </ul>
   <!--<h4>Custom Menu</h4>
   <div>Example: <em>jp tg mu</em></div>
@@ -223,8 +224,8 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
     <a href="/<%= @opts.slug %>/feed.rss">RSS feed</a> available.<% end %></span>
   </div>
 </noscript>
-<menu type="context" id="ctxmenu-main">
-</menu>
+<menu type="context" id="ctxmenu-main"></menu>
+<menu type="context" id="ctxmenu-thread"></menu>
 <script type="text/javascript">
   $(document).ready(function() {
     $('#topnav').find('.wut').tipsy({gravity: 's'});

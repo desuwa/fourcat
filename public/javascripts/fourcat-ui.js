@@ -64,6 +64,7 @@ $.fourcat = function(opts) {
   
   quickFilterPattern = false,
   
+  hasContextMenu = 'HTMLMenuItemElement' in window,
   hasNativeJSON = typeof JSON != 'undefined',
   hasWebStorage = (function() {
     try {
@@ -93,8 +94,11 @@ $.fourcat = function(opts) {
   $filterRgbOk = $('#filter-rgb-ok').click(selectFilterColor),
   $filteredCount = $('#filtered-count'),
   $filteredLabel = $('#filtered-label'),
-  
   $filterPalette = null,
+  
+  ctxCmds = null;
+  
+  // ---
   
   $('#qf-ok').click(applyQuickfilter);
   $('#qf-clear').click(toggleQuickfilter);
@@ -108,12 +112,8 @@ $.fourcat = function(opts) {
     Array.prototype.indexOf = function () { return -1; }
   }
   
-  if ('HTMLMenuItemElement' in window) {
-    document.getElementById('ctxmenu-main').innerHTML = 
-      '<menuitem label="Show hidden threads" id="ctxitem-unhide"></menuitem>'
-      + '<menuitem label="Unpin threads" id="ctxitem-unpin"></menuitem>';
-    $('#ctxitem-unhide').click(clearHiddenThreads);
-    $('#ctxitem-unpin').click(clearPinnedThreads);
+  if (hasContextMenu) {
+    buildContextMenu();
   }
   
   $('#filters-clear-hidden').click(clearHiddenThreads);
@@ -199,43 +199,93 @@ $.fourcat = function(opts) {
     fc.buildThreads();
   }
   
+  function buildContextMenu() {
+    var icon = ' icon="/favicon.ico"';
+    
+    ctxCmds = {
+      clearpin: clearPinnedThreads,
+      pin: toggleThreadPin,
+      hide: toggleThreadHide,
+      report: reportThread
+    }
+    
+    document.getElementById('ctxmenu-main').innerHTML = 
+      '<menuitem label="Unpin all threads" icon="/favicon.ico"></menuitem>';
+    
+    document.getElementById('ctxmenu-thread').innerHTML = 
+      '<menuitem label="Pin/Unpin" data-cmd="pin"' + icon + '></menuitem>' +
+      '<menuitem label="Hide" data-cmd="hide"' + icon + '></menuitem>' +
+      '<menuitem label="Report" data-cmd="report"' + icon + '></menuitem>' +
+      '<menuitem label="Unpin all" data-cmd="clearpin"' + icon + '></menuitem>';
+    
+    $('#ctxmenu-main').click(clearPinnedThreads);
+    $('#ctxmenu-thread').click(onThreadContextClick);
+  }
+  
   function bindGlobalShortcuts() {
     var el, tid;
     if (hasWebStorage && hasNativeJSON) {
-      $threads.click(function(e) {
+      $threads.on('mousedown', function(e) {
         el = e.target;
         if (el.className.indexOf('thumb') != -1) {
-          if ((e.altKey && !activeTheme.altKey)
+          tid = el.getAttribute('data-id');
+          if (e.which == 3) {
+            $threads[0].setAttribute('contextmenu', 'ctxmenu-thread');
+            document.getElementById('ctxmenu-thread').target = tid;
+          }
+          else if ((e.altKey && !activeTheme.altKey)
             || (e.ctrlKey && activeTheme.altKey)) {
-            tid = el.getAttribute('data-id');
-            if (pinnedThreads[tid] >= 0) {
-              delete pinnedThreads[tid];
-            }
-            else {
-              pinnedThreads[tid] = catalog.threads[tid].r || 0;
-            }
-            localStorage.setItem('pin-' + catalog.slug, JSON.stringify(pinnedThreads));
-            fc.buildThreads();
+            toggleThreadPin(tid);
             return false;
           }
           else if (e.shiftKey) {
-            if (!hiddenThreads) {
-              hiddenThreads = {};
-            }
-            hiddenThreads[el.getAttribute('data-id')] = true;
-            localStorage.setItem('hide-' + catalog.slug, JSON.stringify(hiddenThreads));
-            el.parentNode.parentNode.style.display = 'none';
-            ++hiddenThreadsCount;
-            $hiddenCount[0].innerHTML = hiddenThreadsCount;
-            $hiddenLabel.show();
+            toggleThreadHide(tid);
             return false;
           }
+        }
+        else if (e.which == 3) {
+          $threads[0].setAttribute('contextmenu', 'ctxmenu-main');
         }
       });
     }
     if (!activeTheme.nobinds) {
       $(document).on('keyup', processKeybind);
     }
+  }
+  
+  function toggleThreadPin(tid) {
+    if (pinnedThreads[tid] >= 0) {
+      delete pinnedThreads[tid];
+    }
+    else {
+      pinnedThreads[tid] = catalog.threads[tid].r || 0;
+    }
+    localStorage.setItem('pin-' + catalog.slug, JSON.stringify(pinnedThreads));
+    fc.buildThreads();
+  }
+  
+  function toggleThreadHide(tid) {
+    hiddenThreads[tid] = true;
+    localStorage.setItem('hide-' + catalog.slug, JSON.stringify(hiddenThreads));
+    document.getElementById('thread-' + tid).style.display = 'none';
+    ++hiddenThreadsCount;
+    $hiddenCount[0].innerHTML = hiddenThreadsCount;
+    $hiddenLabel.show();
+  }
+  
+  function reportThread(tid) {
+    window.open(
+      'http://sys.4chan.org/' + catalog.slug +
+      '/imgboard.php?mode=report&no=' + tid,
+      Date.now(), 
+      'toolbar=0,scrollbars=0,location=0,status=1,menubar=0,resizable=1,' +
+      'width=660,height=192'
+    );
+  }
+  
+  function onThreadContextClick(e) {
+    var cmd = e.target.getAttribute('data-cmd');
+    ctxCmds[cmd](document.getElementById('ctxmenu-thread').target);
   }
   
   function processKeybind(e) {
