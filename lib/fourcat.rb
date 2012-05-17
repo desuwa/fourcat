@@ -517,7 +517,7 @@ class Catalog
       end
     rescue HTTPNotFound => e
       raise e
-    rescue Timeout::Error, HTTPError => e
+    rescue Timeout::Error, Errno::ECONNRESET, HTTPError => e
       if try > @opts.retries
         raise "Skipping after #{e.message}: #{http.address}#{path}"
       end
