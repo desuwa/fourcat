@@ -160,6 +160,24 @@ $.fourcat = function(opts) {
     location.href = location.href;
   }
   
+  // adapted from underscore.js
+  // returns a function that will call
+  // fn [delay] ms after the *last* time
+  // it was called.
+  function debounce(delay, fn) {
+    var timeout;
+
+    return function() {
+      var args = arguments,
+          context = this;
+
+      clearTimeout(timeout);
+      timeout = setTimeout(function () {
+        fn.apply(context, args);
+      }, delay);
+    };
+  }
+
   function toggleQuickfilter() {
     var qfcnt = document.getElementById('qf-cnt');
     if ($qfCtrl.hasClass('active')) {
@@ -171,7 +189,9 @@ $.fourcat = function(opts) {
     else {
       qfcnt.style.display = 'inline';
       $('#qf-box')
-			.keyup(applyQuickfilter) // "instant"-style searching
+      // instant-style searching, debounced to prevent excessive
+      // reconstruction of the posts
+      .keyup(debounce(250, applyQuickfilter))
       .keydown(function(e) {
         if (e.keyCode == '27') {
           toggleQuickfilter();
@@ -188,6 +208,8 @@ $.fourcat = function(opts) {
       qfstr = qfstr.replace(regexEscape, '\\$1');
       quickFilterPattern = new RegExp(qfstr, 'i');
       fc.buildThreads();
+    } else {
+      clearQuickfilter();
     }
   }
   
