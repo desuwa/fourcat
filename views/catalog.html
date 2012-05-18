@@ -49,10 +49,7 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
     <span id="filters-ctrl" class="button">Filters</span>
     <span id="theme-ctrl" class="button">Theme</span>
     <span data-tip="Redirect to the archive" id="proxy-ctrl" class="button">Archive</span>
-    <span id="qf-ctrl" class="button">Search</span>
-    <span style="display:none" id="qf-cnt">
-      <input type="text" id="qf-box" name="qf-box"><span id="qf-ok" class="button">&#x2714;</span><span id="qf-clear" class="button">&#x2716;</span>
-    </span>
+    <input type="text" id="qf-box" name="qf-box" placeholder="Search">
   </div>
   <div class="clear"></div>
 </div>
