@@ -170,11 +170,9 @@ $.fourcat = function(opts) {
     }
     else {
       qfcnt.style.display = 'inline';
-      $('#qf-box').keyup(function(e) {
-        if (e.keyCode == '13') {
-          applyQuickfilter();
-        }
-      }).keydown(function(e) {
+      $('#qf-box')
+			.keyup(applyQuickfilter) // "instant"-style searching
+      .keydown(function(e) {
         if (e.keyCode == '27') {
           toggleQuickfilter();
         }
