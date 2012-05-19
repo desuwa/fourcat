@@ -24,7 +24,7 @@ $.fourcat = function(opts) {
   },
   
   keybinds = {
-    83: toggleQuickfilter, // S
+    83: focusQuickfilter, // S
     82: refreshWindow, // R
     88: cycleOrder // X
   },
@@ -100,7 +100,6 @@ $.fourcat = function(opts) {
   
   // ---
   
-  $('#qf-ok').click(applyQuickfilter);
   $('#qf-clear').click(toggleQuickfilter);
   
   $('#theme-ctrl').click(showThemeEditor);
@@ -118,7 +117,7 @@ $.fourcat = function(opts) {
   
   $('#filters-clear-hidden').click(clearHiddenThreads);
 
-  $(window).resize(centerThreads);
+  $(window).resize(debounce(250, centerThreads));
   
   fc.loadCatalog = function(c) {
     catalog = c;
@@ -160,43 +159,48 @@ $.fourcat = function(opts) {
     location.href = location.href;
   }
   
-  // adapted from underscore.js
-  // returns a function that will call
-  // fn [delay] ms after the *last* time
-  // it was called.
   function debounce(delay, fn) {
     var timeout;
-
+    
     return function() {
-      var args = arguments,
-          context = this;
-
+      var args = arguments, context = this;
+      
       clearTimeout(timeout);
       timeout = setTimeout(function () {
         fn.apply(context, args);
       }, delay);
     };
   }
-
+  
+  function focusQuickfilter() {
+    var qf;
+    
+    if ($qfCtrl.hasClass('active')) {
+      clearQuickfilter(true);
+    }
+    else {
+      toggleQuickfilter();
+    }
+  }
+  
   function toggleQuickfilter() {
     var qfcnt = document.getElementById('qf-cnt');
     if ($qfCtrl.hasClass('active')) {
       clearQuickfilter();
       qfcnt.style.display = 'none';
       $qfCtrl.removeClass('active');
-      $('#qf-box').off('keyup').off('keydown');
+      $('#qf-box').off('keyup').off('keydown')[0].blur();
     }
     else {
       qfcnt.style.display = 'inline';
       $('#qf-box')
-      // instant-style searching, debounced to prevent excessive
-      // reconstruction of the posts
-      .keyup(debounce(250, applyQuickfilter))
-      .keydown(function(e) {
-        if (e.keyCode == '27') {
-          toggleQuickfilter();
-        }
-      }).focus()[0].value = '';
+        .keyup(debounce(250, applyQuickfilter))
+        .keydown(function(e) {
+          if (e.keyCode == '27') {
+            toggleQuickfilter();
+          }
+        })
+        .focus()[0].value = '';
       $qfCtrl.addClass('active');
     }
   }
@@ -213,10 +217,16 @@ $.fourcat = function(opts) {
     }
   }
   
-  function clearQuickfilter() {
-    var qfstr = document.getElementById('qf-box').value;
-    quickFilterPattern = false;
-    fc.buildThreads();
+  function clearQuickfilter(focus) {
+    var qf = document.getElementById('qf-box')
+    if (focus) {
+      qf.value = '';
+      qf.focus();
+    }
+    else {
+      quickFilterPattern = false;
+      fc.buildThreads();
+    }
   }
   
   function buildContextMenu() {
