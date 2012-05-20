@@ -4,6 +4,7 @@ require 'htmlentities'
 require 'json'
 require 'logger'
 require 'net/http'
+require 'nokogiri'
 require 'ostruct'
 require 'stringio'
 require 'time'
@@ -14,7 +15,7 @@ module Fourcat
 
 class Catalog
   
-  VERSION     = '0.9.11'
+  VERSION     = '1.0.0'
   
   TAG_REGEX   = /<[^>]+>/i
   PB_REGEX    = /[\u2028\u2029]/
@@ -29,14 +30,10 @@ class Catalog
     :title            => nil,
     :public_dir       => nil,
     :default_name     => 'Anonymous',
-    :default_title    => '',
-    :default_comment  => '',
     :precompress      => false,
     :stats            => false,
     :proxy            => nil,
     :debug            => false,
-    :front_page       => '',
-    :extension        => '',
     :text_only        => false,
     :write_html       => true,
     :html_template    => 'catalog.html',
@@ -47,60 +44,20 @@ class Catalog
     :content_uri      => nil,
     :user_agent       => "4cat/#{VERSION}",
     :spoiler_text     => false,
-    :spoiler_mark     => 'spoiler',
-    :filedeleted_mark => 'filedeleted',
-    :threads_pattern  => Regexp.new(
-      '<div id="p([0-9]+)" class="post op"><div.*?</div>' <<
-      '(?:<div class="file".*?class="fileThumb[^<]+<img src="([^"]+)")?' <<
-      '.*?<span class="subject">([^<]*)</span> ' <<
-      '<span class="nameBlock[^"]*">(.*?)' <<
-      '<span class="dateTime" data-utc="([0-9]+)">' <<
-      '.*?Quote this post([^\[]+)\[<a' <<
-      '.*?<blockquote class="postMessage" id="m[0-9]+">(.*?)</blockquote>' <<
-      '.*?<span class="info">' <<
-      '(?:\s*<strong>([0-9]+)[^<]+</strong>(?:<br /><em>\(([0-9]+))?)?',
-      Regexp::MULTILINE
-    ),
-    :replies_pattern  => Regexp.new(
-      '<span class="postNum desktop"><a href="res/([0-9]+)#p([0-9]+)' <<
-      '.*?</div>(<div class="file")?',
-      Regexp::MULTILINE
-    ),
-    :pages_pattern    => Regexp.new(
-      '\[(?:<a href="[0-9]{1,2}">|<strong>)([0-9]{1,2})(?:</a>|</strong>)\] '
-    ),
-    :spoiler_xpath    => './span[@class="spoiler"]',
-    :repliesmap =>
-    {
-      :tid    => 0,
-      :pid    => 1,
-      :img    => 2
-    },
-    :matchmap =>
-    {
-      :id     => 0,
-      :thumb  => 1,
-      :title  => 2,
-      :author => 3,
-      :date   => 4,
-      :status => 5,
-      :body   => 6,
-      :orep   => 7,
-      :oimg   => 8
-    },
-    :req_delay      => 1.2,
-    :req_timeout    => 10,
-    :retries        => 2,
-    :no_partial     => true,
-    :page_count     => [16, 2],
-    :refresh_delay  => 60,
-    :refresh_range  => [60, 300],
-    :refresh_step   => 10,
-    :refresh_thres  => nil,
-    :teaser_length  => 200,
-    :server         => 'http://boards.4chan.org/',
-    :relative_urls  => false,
-    :workers_limit  => 3
+    :remove_exif      => false,
+    :remove_oekaki    => false,
+    :req_delay        => 1.2,
+    :req_timeout      => 10,
+    :retries          => 2,
+    :no_partial       => true,
+    :page_count       => [16, 2],
+    :refresh_delay    => 60,
+    :refresh_range    => [60, 300],
+    :refresh_step     => 10,
+    :refresh_thres    => nil,
+    :teaser_length    => 200,
+    :server           => 'http://boards.4chan.org/',
+    :workers_limit    => 3
   }
   
   def self.defaults=(opts)
@@ -140,12 +97,6 @@ class Catalog
   # @option opts [String] default_name
   #   Default author for threads
   #
-  # @option opts [String] default_title
-  #   Default title for threads
-  #
-  # @option opts [String] default_comment
-  #   Default comment for threads
-  #
   # @option opts [true, false] precompress
   #   Compress output, defaults to false
   #
@@ -157,12 +108,6 @@ class Catalog
   #
   # @option opts [true, false] debug
   #   Log everything to STDERR
-  #
-  # @option opts [String] front_page
-  #   Page 0 remote file name
-  #
-  # @option opts [String] extension
-  #   Remote files extension, including the dot
   #
   # @option opts [true, false] text_only
   #   Don't fetch thumbnails. Defaults to false
@@ -194,16 +139,11 @@ class Catalog
   # @option opts [String, false] spoiler_text
   #   Handle spoiler tags. Defaults to false.
   #
-  # @option opts [Regexp] threads_pattern Threads regex
-  # @option opts [Regexp] replies_pattern Omitted replies and images regex
-  # @option opts [Regexp] date_pattern    Date regex
-  # @option opts [Regexp] pages_pattern   Page navigation menu regex
-  # @option opts [String] spoiler_xpath   Spoiler tags xpath
-  # @option opts [Hash]   datemap         Parens match map for the date pattern
-  # @option opts [Hash]   matchmap        Parens match map for threads pattern
+  # @option opts [true, false] remove_exif
+  #   Remove EXIF meta. Defaults to false.
   #
-  # @option opts [Integer] utc_offset
-  #   Remote server UTC offset in seconds, defaults to Time.zone_offset('EST')
+  # @option opts [true, false] remove_oekaki
+  #   Remove Oekaki meta. Defaults to false.
   #
   # @option opts [Numeric] req_delay
   #   Delay in seconds between requests, defaults to 1.2
@@ -250,9 +190,6 @@ class Catalog
   #
   # @option opts [String] server
   #   Remote server URL, defaults to 'http://boards.4chan.org/'
-  #
-  # @option opts [true, false] relative_urls
-  #   Use relative urls for thumbnails. Defaults to false.
   #
   # @example Initialize a catalog
   #   catalog = Catalog.new('jp', {
@@ -315,12 +252,9 @@ class Catalog
       @template = load_template(@tpl_file)
     end
     
-    if @opts.write_rss || @opts.spoiler_text
-      require 'nokogiri'
-      if @opts.write_rss 
-        raise "RSS writer: web_uri can't be empty" if !@opts.web_uri
-        @opts.rss_desc ||= "Meanwhile, on /#{@opts.slug}/"
-      end
+    if @opts.write_rss 
+      raise "RSS writer: web_uri can't be empty" if !@opts.web_uri
+      @opts.rss_desc ||= "Meanwhile, on /#{@opts.slug}/"
     end
     
     @headers = {
@@ -336,6 +270,8 @@ class Catalog
     
     # Local JSON file
     @json_file = @board_dir + 'threads.json'
+    
+    @omitted_regex = /([0-9]+)[^.]+([0-9]+)?/
     
     @entities = HTMLEntities.new
     
@@ -370,6 +306,10 @@ class Catalog
       else
         'thumb-404.png'
       end
+    
+    @pagination_pattern = Regexp.new(
+      '\[(?:<a href="[0-9]{1,2}">|<strong>)([0-9]{1,2})(?:</a>|</strong>)\] '
+    )
     
     @pages_uri = URI.parse(@opts.server)
     
@@ -460,22 +400,6 @@ class Catalog
     @stats_io.close if @stats_io
   end
   
-  # Counts images and replies and tracks the highest reply id
-  # @param [String] html page HTML to process
-  # @return [Hash]
-  def count_replies(html)
-    reply_count = { :rep => Hash.new(0), :img => Hash.new(0) }
-    replies = html.scan(@opts.replies_pattern)
-    rm = @opts.repliesmap
-    replies.each do |r|
-      reply_id = r[rm[:pid]].to_i
-      @this_high_reply = reply_id if reply_id > @this_high_reply
-      reply_count[:rep][r[rm[:tid]]] += 1
-      reply_count[:img][r[rm[:tid]]] += 1 if r[rm[:img]]
-    end
-    reply_count
-  end
-  
   # Generates the excerpt (teaser)
   # @param [String] str Comment body
   # @param [true, false] has_spoilers Teaser contains spoilers
@@ -544,12 +468,7 @@ class Catalog
   # @param [String] url
   # @see #fetch
   def get_image(url)
-    if @opts.relative_urls
-      uri = @pages_uri
-      uri.path = url
-    else
-      uri = URI.parse(url)
-    end
+    uri = URI.parse(url)
     http = Net::HTTP.new(uri.host, uri.port)
     http.open_timeout = http.read_timeout = @opts.req_timeout
     fetch(http, uri.path).body
@@ -562,12 +481,8 @@ class Catalog
     http = Net::HTTP.new(@pages_uri.host, @pages_uri.port)
     http.open_timeout = http.read_timeout = @opts.req_timeout
     
-    path = "#{@pages_uri.path}#{@board}/" <<
-      if page_num.zero?
-        @opts.front_page
-      else
-        "#{page_num}#{@opts.extension}"
-      end
+    path = "#{@pages_uri.path}#{@board}/"
+    path << "#{page_num}" unless page_num.zero?
     
     resp = fetch(http, path)
     
@@ -582,9 +497,10 @@ class Catalog
     
     unless data.valid_encoding?
       @log.debug("Re-encoding invalid UTF-8 string: #{path}")
-      data.encode!('UTF-8', 'UTF-8', {
+      data.encode!('UTF-16LE', 'UTF-8', {
         :invalid => :replace, :undef => :replace, :replace => ''
       })
+      data.encode!('UTF-8', 'UTF-16LE')
     end
     
     data
@@ -669,8 +585,7 @@ class Catalog
       :anon       => @opts.default_name,
       :mtime      => @mtime.to_i,
       :proxy      => @opts.proxy,
-      :server     => "#{@opts.server}#{@board}/",
-      :ext        => @opts.extension,
+      :server     => "#{@opts.server}#{@board}/"
     }.to_json
     
     if @opts.write_json && @opts.write_html
@@ -726,16 +641,17 @@ class Catalog
     workers = {}
     active_workers = 0
     @pages_dropped = 0
-    @max_page = nil
     @this_high_reply = @last_high_reply
     
     for run in 0...@opts.page_count.length
       @log.debug "Run #{run}"
       
+      @next_page_empty = false
+      
       threads[run] = {}
       
       for page in 0...@opts.page_count[run]
-        if @max_page && @max_page < page
+        if @next_page_empty
           @log.debug "Page #{page} is empty, breaking"
           break
         end
@@ -750,15 +666,7 @@ class Catalog
         workers["#{run}-#{page}"] = Thread.new(threads[run], page) do |th, page|
           begin
             active_workers += 1
-            html = get_page(page)
-            @max_page =
-              if @max_page = html.scan(@opts.pages_pattern).last
-                @max_page[0].to_i
-              else
-                @log.error "Pattern: can't find max page"
-                @opts.page_count[run] - 1
-              end unless @max_page
-            th[page] = scan_threads(html) if @max_page >= page
+            th[page] = scan_threads(get_page(page))
           rescue HTTPNotFound => e
             @log.debug "Page #{page} not found"
             @max_page = page
@@ -920,109 +828,164 @@ class Catalog
   # @param [String] html raw HTML to process
   # @return [Hash{thread_id(Integer) => Hash}] a Hash of threads
   def scan_threads(html)
-    unless (matches = html.scan(@opts.threads_pattern))[0]
-      raise "Pattern: can't find any threads"
+    doc = Nokogiri::HTML.parse(html)
+    
+    unless doc.xpath(
+        'html/body/div[@class="pagelist desktop"]/div[@class="next"]/form'
+      )[0]
+      @next_page_empty = true 
     end
     
-    reply_count = count_replies(html)
+    nodes = doc.xpath(
+      'html/body/form[@id="delform"]/div[@class="board"]/div[@class="thread"]'
+    )
+    
+    if nodes.empty?
+      raise 'Can not find any threads'
+    end
     
     threads = {}
     
-    mm = @opts.matchmap
-    dm = @opts.datemap
-    
-    matches.each do |t|
-      thread = {}
+    nodes.each do |n|
+      th = {}
+      
+      # Thread id
+      th[:id] = n['id'][1..-1]
+      
+      unless op = n.xpath("div[@id='pc#{th[:id]}']/div[@id='p#{th[:id]}']")[0]
+        raise "Can not find the OP for thread #{th[:id]}"
+      end
+      
+      unless postinfo = op.xpath(".//div[@id='pi#{th[:id]}']")[0]
+        raise "Can not find the postinfo for thread #{th[:id]}"
+      end
       
       # Link to thread
-      thread[:href] = link_to_thread(t[mm[:id]])
+      th[:href] = link_to_thread(th[:id])
       
-      # Sticky thread? [true, false]
-      thread[:sticky] = t[mm[:status]].include?('sticky') if t[mm[:status]]
+      # Sticky thread?
+      th[:sticky] = !postinfo.xpath('.//img[@title="Sticky"]').empty?
       
-      # Title [String]
-      t[mm[:title]].gsub!(TAG_REGEX, '')
-      thread[:title] = t[mm[:title]]
+      # Title
+      if th[:title] = postinfo.xpath("span[@class='subject']")[0]
+        th[:title] = th[:title].text
+      else
+        @log.warn("Can not find the title for thread #{th[:id]}")
+        th[:title] = ''
+      end
       
-      # Comment [String]
-      thread[:body] =
-        if @opts.spoiler_text && !t[mm[:body]].empty?
-          t[mm[:body]].gsub!(/\[\/spoiler\]/, BB_TAGS)
-          frag = Nokogiri::HTML.fragment(t[mm[:body]], 'utf-8')
-          nodes = frag.xpath(@opts.spoiler_xpath)
-          if nodes.empty?
+      # Comment
+      if msg = op.xpath('blockquote[@class="postMessage"]')[0]
+        if @opts.remove_exif
+          if (meta = msg.last_element_child) && meta['class'] == 'exif'
+            meta.remove
+            (meta = msg.xpath('span[@class="abbr"]')[0]) && meta.remove
+          end
+        end
+        if @opts.remove_oekaki
+          (meta = msg.last_element_child) && meta.name == 'small' && meta.remove
+        end
+        if @opts.spoiler_text && !msg.text.empty?
+          spoilers = msg.xpath('span[@class="spoiler"]')
+          if spoilers.empty?
             has_spoilers = false
-            t[mm[:body]]
           else
             has_spoilers = true
-            nodes.each do |node|
-              node.remove if node.content == ''
-              node.replace(Nokogiri::HTML.fragment(
-                "[spoiler]#{node.inner_html}[/spoiler]", 'utf-8'))
+            spoilers.each do |s|
+              if s.content == ''
+                s.remove
+              else
+                s.inner_html = "[spoiler]#{s.inner_html}[/spoiler]"
+              end
             end
-            frag.to_s
           end
         else
           has_spoilers = false
-          t[mm[:body]]
         end
-      thread[:body].gsub!(LB_REGEX, "\n")
-      thread[:body].gsub!(TAG_REGEX, '')
+        th[:body] = msg.inner_html.gsub(LB_REGEX, "\n")
+        th[:body].gsub!(TAG_REGEX, '')
+      else
+        @log.warn("Can not find the message body for thread #{th[:id]}")
+        th[:body] = ''
+      end
       
-      # Teaser [String, nil]
+      # Teaser
       if @opts.teaser_length > 0
-        thread[:teaser] =
-          if thread[:title] != @opts.default_title
-            if thread[:body] != @opts.default_comment
-              cut_teaser("#{thread[:title]}: #{thread[:body]}", has_spoilers)
+        th[:teaser] =
+          unless th[:title].empty?
+            unless th[:body].empty?
+              cut_teaser("#{th[:title]}: #{th[:body]}", has_spoilers)
             else
-              cut_teaser(thread[:title])
+              cut_teaser(th[:title])
             end
           else
-            cut_teaser(thread[:body], has_spoilers)
+            cut_teaser(th[:body], has_spoilers)
           end
-        thread[:teaser].gsub!(/\n+/, ' ')
-        thread[:teaser].gsub!(PB_REGEX, '')
+        th[:teaser].gsub!(/\n+/, ' ')
+        th[:teaser].gsub!(PB_REGEX, '')
       end
-      thread[:body].gsub!("\n", '<br>')
+      th[:body].gsub!("\n", '<br>')
       
       if has_spoilers
-        thread[:body].gsub!(/\[\/?spoiler\]/, BB_TAGS) 
-        thread[:teaser].gsub!(/\[\/?spoiler\]/, BB_TAGS)
+        th[:body].gsub!(/\[\/?spoiler\]/, BB_TAGS) 
+        th[:teaser].gsub!(/\[\/?spoiler\]/, BB_TAGS)
       end
       
-      # Thumbnail filename or special file (spoiler, 404) [String]
-      if !t[mm[:thumb]] || @opts.text_only ||
-          t[mm[:thumb]].include?(@opts.filedeleted_mark)
-        thread[:s] = @thumb_404
-      elsif t[mm[:thumb]].include?(@opts.spoiler_mark)
-        thread[:s] = @spoiler_pic
+      # Thumbnail
+      thumb = op.xpath("div[@id='f#{th[:id]}']")[0]
+      
+      if !thumb || @opts.text_only
+        th[:s] = @thumb_404
+      else
+        thumb = thumb.xpath('.//img')[0]
+        if !thumb || thumb['src'].include?('deleted')
+          th[:s] = @thumb_404
+        elsif thumb['src'].include?('spoiler')
+          th[:s] = @spoiler_pic
+        else
+          th[:src] = thumb['src']
+        end
       end
       
-      # Thumbnail URL [String]
-      thread[:src] = t[mm[:thumb]]
-      
-      # Author [String]
-      t[mm[:author]].strip!
-      t[mm[:author]].gsub!(PB_REGEX, '')
-      t[mm[:author]].gsub!(TAG_REGEX, '') # Staff vanity posts clean up
-      
-      thread[:author] = t[mm[:author]] if t[mm[:author]] != @opts.default_name
-      
-      # Omitted replies [Integer]
-      thread[:r] = reply_count[:rep][t[mm[:id]]]
-      thread[:r] += t[mm[:orep]].to_i if t[mm[:orep]]
-      
-      # Omitted images [Integer]
-      if mm[:oimg] != nil
-        thread[:i] = reply_count[:img][t[mm[:id]]]
-        thread[:i] += t[mm[:oimg]].to_i
+      # Author
+      author = op.xpath(".//div[@id='pi#{th[:id]}']/span[@class='nameBlock']")
+      if author[0]
+        author = author[0].text.strip
+        author.gsub!(PB_REGEX, '')
+        th[:author] = author if author != @opts.default_name
+      else
+        @log.warn("Can not find the author for thread #{th[:id]}") 
       end
       
-      # Date UTC [Time]
-      thread[:date] = Time.at(t[mm[:date]].to_i)
+      # Omitted replies and images
+      th[:r] = 0
+      th[:i] = 0
+      replies = n.xpath('div[@class="postContainer replyContainer"]')
+      replies.each do |r|
+        reply_id = r['id'][2..-1].to_i
+        @this_high_reply = reply_id if reply_id > @this_high_reply
+        th[:r] += 1
+        th[:i] += 1 if r.xpath('.//div[@class="file"]')[0]
+      end
       
-      threads[t[mm[:id]].to_i] = thread
+      if omitted = n.xpath('span[@class="summary desktop"]')[0]
+        if omitted = omitted.text.scan(/([0-9]+)[^.0-9]+([0-9]+)?/)[0]
+          th[:r] += omitted[0].to_i
+          th[:i] += omitted[1].to_i if omitted[1]
+        else
+          @log.warn("Can not parse omitted replies for thread #{th[:id]}") 
+        end
+      end
+      
+      # Timestamp UTC
+      if th[:date] = op.xpath(".//span[@class='dateTime']")[0]
+        th[:date] = Time.at(th[:date]['data-utc'].to_i)
+      else
+        @log.warn("Can not find the timestamp for thread #{th[:id]}")
+        th[:date] = Time.now
+      end
+      
+      threads[th[:id].to_i] = th
     end
     
     threads
@@ -1085,6 +1048,21 @@ class Catalog
     end
   end
   
+  # File writer
+  # @param [String] data
+  # @param [String] path
+  # @param [true, false] gzip
+  def write_content(data, path, gzip = false)
+    tmp = path + '.tmp'
+    @log.debug 'Writing ' << path
+    if gzip
+      Zlib::GzipWriter.open(tmp) { |f| f.write(data) }
+    else
+      File.open(tmp, 'w:UTF-8') { |f| f.write(data) }
+    end
+    File.rename(tmp, path)
+  end
+  
   # Renders the HTML page
   # @see #refresh
   def write_html(threadlist, order)
@@ -1097,17 +1075,8 @@ class Catalog
     
     html = @template.result(binding())
     
-    File.open(@board_file, 'w:UTF-8') do |f|
-      @log.debug "Writing #{@board_file}"
-      f.write(html)
-    end
-    
-    if @opts.precompress
-      Zlib::GzipWriter.open("#{@board_file}.gz") do |f|
-        @log.debug "Writing #{@board_file}.gz"
-        f.write(html)
-      end
-    end
+    write_content(html, @board_file)
+    write_content(html, @board_file + '.gz', true) if @opts.precompress
   end
   
   # Writes thumbnail files
@@ -1120,18 +1089,8 @@ class Catalog
   # @see #refresh
   def write_json(threadlist, order)
     data = jsonify_threads(threadlist, order)
-    
-    File.open(@json_file, 'w:UTF-8') do |f|
-      @log.debug "Writing #{@json_file}"
-      f.write(data)
-    end
-    
-    if @opts.precompress
-      Zlib::GzipWriter.open("#{@json_file}.gz") do |f|
-        @log.debug "Writing #{@json_file}.gz"
-        f.write(data)
-      end
-    end
+    write_content(data, @json_file)
+    write_content(data, @json_file + '.gz', true) if @opts.precompress
   end
   
   # Generates the RSS feed
@@ -1148,7 +1107,9 @@ class Catalog
           order.each do |id|
             th = threads[id]
             xml.item {
-              xml.title "No.#{id}"
+              title = "No.#{id}"
+              title << ": " << th[:title] if th[:title] != ''
+              xml.title title
               src = @rss_content_uri +
                 if th[:s]
                   "images/#{th[:s]}"
@@ -1157,7 +1118,7 @@ class Catalog
                 end
               xml.description(
                 '<img src="' << src << '" alt="' << "#{id}" << '" />' <<
-                '<p>' << (th[:teaser] || th[:body]) << '</p>'
+                '<p>' << th[:body] << '</p>'
               )
               xml.link "#{th[:href]}"
               xml.guid "#{th[:href]}"
@@ -1169,17 +1130,9 @@ class Catalog
     end
     
     output = builder.to_xml(:indent => 0, :encoding => 'UTF-8')
-    File.open("#{@board_dir}feed.rss", 'w:UTF-8') do |f|
-      @log.debug "Writing #{@board_dir}feed.rss"
-      f.write(output)
-    end
     
-    if @opts.precompress
-      Zlib::GzipWriter.open("#{@board_dir}feed.rss.gz") do |f|
-        @log.debug "Writing #{@board_dir}feed.rss.gz"
-        f.write(output)
-      end
-    end
+    write_content(output, @rss_file)
+    write_content(output, @rss_file + '.gz', true) if @opts.precompress
   end
 
 end

@@ -1,13 +1,13 @@
 # 4cat
-Thread catalog generator for 4chan and other futaba style boards.
+4chan thread catalog generator.
 
 ## System requirements
-- Ruby 1.9.2 or better.
+- Ruby 1.9.2 or higher.
 - Gems
   - `htmlentities`
   - `daemons` if you want to use the provided daemonizer.
   - `erubis` for html output.
-  - `nokogiri` if you want RSS feeds.
+  - `nokogiri` with libxml 2.7.7 or higher.
 - A webserver, anything that can serve static files is fine.
 
 ## Usage
@@ -105,3 +105,26 @@ This doesn't generate any HTML, you will need to set up a cron task to run `make
 
 Hide spoilered text in the catalog.
 
+***
+
+> **Symbol**: `remove_exif`  
+  **Type**: true, false  
+  **Default**: `false`
+
+Remove EXIF metadata.
+
+***
+
+> **Symbol**: `remove_oekaki`  
+  **Type**: true, false  
+  **Default**: `false`
+
+Remove Oekaki metadata.
+
+***
+
+> **Symbol**: `proxy`  
+  **Type**: String, nil
+  **Default**: `nil`
+
+Fuuka style archive URL. ex: `http://archive.example.com/jp/thread/`

@@ -1326,7 +1326,7 @@ $.fourcat = function(opts) {
       }
       thread = '<div id="thread-' + id
       + '" class="thread"><a target="_blank" href="'
-      + provider + id + catalog.ext + '"><img alt="" id="thumb-'
+      + provider + id + '"><img alt="" id="thumb-'
       + id + '" class="thumb';
       
       if (hl.color) {
