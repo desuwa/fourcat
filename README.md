@@ -124,7 +124,7 @@ Remove Oekaki metadata.
 ***
 
 > **Symbol**: `proxy`  
-  **Type**: String, nil
+  **Type**: String, nil  
   **Default**: `nil`
 
 Fuuka style archive URL. ex: `http://archive.example.com/jp/thread/`
