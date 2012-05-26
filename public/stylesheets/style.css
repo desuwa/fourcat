@@ -65,9 +65,7 @@ p {
 input,
 textarea {
   border: none;
-  font-size: 11px;
-  -moz-border-radius: 5px;
-  -webkit-border-radius: 5px;
+  font-size: 12px;
   border-radius: 5px;
   background: #fff;
 }
@@ -80,8 +78,6 @@ input {
 /* Clickables */
 .button {
   color: #fff;
-  -moz-border-radius: 5px;
-  -webkit-border-radius: 5px;
   border-radius: 5px;
   cursor: pointer;
   -moz-user-select: none;
@@ -98,7 +94,6 @@ input {
   white-space: nowrap;
 }
 
-.button:focus,
 .button:hover {
   color: #000;
   background-color: #FFA500;
@@ -121,11 +116,11 @@ input {
 
 /* Active clickables */
 .active {
-  color: #000 !important;
-  background-color: #FFA500 !important;
-  background-image: -moz-linear-gradient(center top, #ffa500, #e89700) !important;
-  background-image: -webkit-linear-gradient(top, #ffa500, #e89700) !important;
-  background-image: -o-linear-gradient(top, #ffa500, #e89700) !important;
+  color: #000;
+  background-color: #FFA500;
+  background-image: -moz-linear-gradient(center top, #ffa500, #e89700);
+  background-image: -webkit-linear-gradient(top, #ffa500, #e89700);
+  background-image: -o-linear-gradient(top, #ffa500, #e89700);
 }
 
 /* Input box for custom colors */
@@ -136,11 +131,7 @@ input {
 /* UI panels */
 .panel {
   border: 2px solid #555;
-  -moz-border-radius: 10px;
-  -webkit-border-radius: 10px;
   border-radius: 10px;
-  -moz-box-shadow: 0px 0px 5px #555;
-  -webkit-box-shadow: 0px 0px 5px #555;
   box-shadow: 0px 0px 5px #555;
   background-color: #8C92AC;
   position: absolute;
@@ -169,29 +160,21 @@ input {
 
 /* Text shadow for bright colors */
 .hl-high {
-  -moz-text-shadow: 0px 1px 2px #000;
-  -o-text-shadow: 0px 1px 2px #000;
-  -webkit-text-shadow: 0px 1px 2px #000;
   text-shadow: 0px 1px 2px #000;
 }
 
 /* Halo highlight for new stuff */
 .nu {
-  -moz-box-shadow: 0px 0px 10px #FFA500;
-  -webkit-box-shadow: 0px 0px 10px #FFA500;
-  -o-box-shadow: 0px 0px 10px #FFA500;
-  box-shadow: 0px 0px 10px #FFA500;
+  box-shadow: 0px 0px 10px #FFA500 !important;
 }
 
 .nu2 {
-  text-shadow: 0 3px 3px #FFA500, 0 -3px 3px #FFA500;
+  text-shadow: 0 3px 3px #FFA500, 0 -3px 3px #FFA500 !important;
 }
 
 /* Notifications */
 .msg-error,
 .msg-ok {
-  -moz-border-radius:3px;
-  -webkit-border-radius:3px;
   border-radius: 3px;
   padding: 1px 5px 1px 5px;
 }
@@ -285,8 +268,6 @@ input {
   color: #000;
   padding: 4px 10px;
   text-align: left;
-  -webkit-border-bottom-right-radius: 6px;
-  -moz-border-radius-bottomright: 6px;
   border-bottom-right-radius: 6px;
 }
 
@@ -492,8 +473,17 @@ input {
 
 /* Thread wrapper */
 .thread {
-  float: left;
+  vertical-align: top;
+  display: inline-block;
   word-wrap: break-word;
+}
+
+.thread a {
+  border: none;
+}
+
+.thread img {
+  display: inline;
 }
 
 /* Thread in compact mode */
@@ -523,8 +513,6 @@ input {
 /* Thumbnail */
 .thumb {
   border: 2px solid #555;
-  -moz-border-radius:3px;
-  -webkit-border-radius:3px;
   border-radius: 3px;
   display: block;
   margin: auto;
@@ -567,7 +555,7 @@ input {
   cursor: help;
   font-size: 10px;
   line-height: 8px;
-  margin-top: 3px;
+  margin-top: 1px;
   text-transform: uppercase;
 }
 
@@ -609,7 +597,7 @@ input {
 }
 
 #totop {
-  margin: 20px 0px;
+  margin: 50px 0 20px;
   text-align: center;
   padding-bottom: 20px;
   border-bottom: 1px dotted #555;
@@ -687,8 +675,6 @@ input {
   padding: 0px;
   margin: 20px auto 0px auto;
   border: 2px solid #555555;
-  -moz-border-radius:3px;
-  -webkit-border-radius:3px;
   border-radius: 3px;
 }
 
@@ -721,7 +707,7 @@ input {
   .tipsy-inner { padding: 5px 8px 4px 8px; background-color: black; color: #E5E4E2; max-width: 300px; text-align: left; word-wrap: break-word; }
 
   /* Rounded corners */
-  .tipsy-inner { -moz-border-radius:3px; -webkit-border-radius:3px; border-radius: 3px; }
+  .tipsy-inner { border-radius: 3px; }
   
   /* Uncomment for shadow */
   /*.tipsy-inner { -webkit-box-shadow: 0px 0px 5px #000000; -moz-box-shadow: 0px 0px 5px #000000; box-shadow: 0px 0px 5px #000000; }*/

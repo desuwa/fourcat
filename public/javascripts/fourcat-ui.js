@@ -18,7 +18,8 @@ $.fourcat = function(opts) {
     // Filters color palette
     filterColors: [
       ['#E0B0FF', '#F2F3F4', '#7DF9FF', '#FFFF00'],
-      ['#FBCEB1', '#FFBF00', '#ADFF2F', '#0047AB']
+      ['#FBCEB1', '#FFBF00', '#ADFF2F', '#0047AB'],
+      ['#00A550', '#007FFF', '#AF0A0F', '#B5BD68']
     ],
     threadsPerPage: 10
   },
@@ -116,8 +117,6 @@ $.fourcat = function(opts) {
   }
   
   $('#filters-clear-hidden').click(clearHiddenThreads);
-
-  $(window).resize(debounce(250, centerThreads));
   
   fc.loadCatalog = function(c) {
     catalog = c;
@@ -128,7 +127,6 @@ $.fourcat = function(opts) {
       + ' ' + fc.getDuration(catalog.delay, true));
     fc.setProxy(options.proxy, true);
     fc.buildThreads();
-    centerThreads();
     clearInterval(pulseInterval);
     pulseInterval = setInterval(updateTime, 10000);
   }
@@ -381,7 +379,6 @@ $.fourcat = function(opts) {
   function onThumbMouseIn() {
     var
       $this = $(this),
-      ofsDiff = this.offsetLeft - $this.closest('.thread')[0].offsetLeft,
       oldWidth = this.offsetWidth,
       oldHeight = this.offsetHeight,
       newWidth, newHeight;
@@ -393,7 +390,7 @@ $.fourcat = function(opts) {
     newWidth = this.offsetWidth;
     newHeight = this.offsetHeight;
     
-    offsetX = (-(newWidth - oldWidth) / 2) + ofsDiff;
+    offsetX = (-(newWidth - oldWidth) / 2);
     offsetY = -(newHeight - oldHeight) / 2;
     
     this.style.marginLeft = offsetX + 'px';
@@ -407,22 +404,6 @@ $.fourcat = function(opts) {
     $this.removeClass('scaled');
     this.style.marginLeft = '';
     this.style.marginTop = '';
-  }
-  
-  // Bound to window.onresize
-  function centerThreads() {
-    if (!$thumbs) return;
-    
-    var
-      thumbswidth = $thumbs.closest('.thread').outerWidth(true),
-      threadswidth = $threads[0].offsetWidth,
-      rowsize = (0 | (threadswidth / thumbswidth)) * thumbswidth;
-    
-    if (rowsize == 0) {
-      return;
-    }
-    
-    $threads[0].style.paddingLeft = ((threadswidth - rowsize) / 2) + 'px';
   }
   
   // Generate the color palette for the filters
@@ -844,7 +825,7 @@ $.fourcat = function(opts) {
     if ($filtersPanel.css('display') == 'none') {
       var
         buttons = ['notipsy', 'magnify', 'altKey', 'nobinds', 'usessl'],
-        menu,
+        ss, menu,
         theme = localStorage.getItem('theme');
       
       theme = theme ? JSON.parse(theme) : {};
@@ -860,6 +841,17 @@ $.fourcat = function(opts) {
       
       if (theme.menu && (menu = document.getElementById('theme-menu'))) {
         menu.value = theme.menu;
+      }
+      
+      if (theme.ss) {
+        ss = document.getElementById('theme-ss');
+        theme.ss = theme.ss.split('.')[0];
+        for (var i = ss.options.length - 1; i >= 0; i--) {
+          if (ss.options[i].value == theme.ss) {
+            ss.selectedIndex = i;
+            break;
+          }
+        }
       }
       
       if (theme.css) {
@@ -922,7 +914,7 @@ $.fourcat = function(opts) {
   }
   
   function applyTheme(customTheme) {
-    var i, j, header, nav, slugs, slughash, hasHidden, style, more;
+    var i, j, head, header, nav, slugs, slughash, hasHidden, style, link, more;
     
     if (customTheme.menu) {
       if (document.getElementsByClassName) {
@@ -1004,15 +996,35 @@ $.fourcat = function(opts) {
       }
     }
     
-    style = document.getElementById('custom-css')
-    if (style) {
-      (document.head || document.getElementsByTagName('head')[0]).removeChild(style);
+    head = document.head || document.getElementsByTagName('head')[0];
+    
+    if (customTheme.ss) {
+      if (!(link = document.getElementById('preset-css'))) {
+        link = document.createElement('link');
+        link.type = 'text/css';
+        link.rel = 'stylesheet';
+        link.id = 'preset-css';
+        link.href = '/stylesheets/' + customTheme.ss;
+        head.insertBefore(link, document.getElementById('base-css').nextSibling);
+      }
+      else {
+        link.href = '/stylesheets/' + customTheme.ss;
+      }
+    }
+    else {
+      if (activeTheme.ss != customTheme.ss) {
+        head.removeChild(document.getElementById('preset-css'));
+      }
+    }
+    
+    if (style = document.getElementById('custom-css')) {
+      head.removeChild(style);
     }
     
     if (customTheme.css) {
       style = document.createElement('style');
-      style.setAttribute('type', 'text/css');
-      style.setAttribute('id', 'custom-css');
+      style.type = 'text/css';
+      style.id = 'custom-css';
       
       if (style.styleSheet) {
         style.styleSheet.cssText = customTheme.css;
@@ -1021,14 +1033,13 @@ $.fourcat = function(opts) {
         style.innerHTML = customTheme.css;
       }
       // Allows to add in-page css inside a style tag with 'event-css' as id
-      (document.head || document.getElementsByTagName('head')[0])
-        .insertBefore(style, document.getElementById('event-css'));
+      head.insertBefore(style, document.getElementById('event-css'));
     }
   }
   
   // Applies and saves the theme to localStorage
   function saveTheme() {
-    var menu, css, style, customTheme = {};
+    var ss, menu, css, style, customTheme = {};
     
     if ($('#theme-notipsy').hasClass('active')) {
       customTheme.notipsy = true;
@@ -1052,6 +1063,12 @@ $.fourcat = function(opts) {
     if (customTheme.usessl != activeTheme.usessl) {
       setSSL(!!customTheme.usessl);
       fc.buildThreads();
+    }
+    
+    ss = document.getElementById('theme-ss');
+    if (ss.value != '0') {
+      customTheme.ss = ss.value + '.css?' + 
+        ss.options[ss.selectedIndex].getAttribute('data-version');
     }
     
     menu = document.getElementById('theme-menu');
@@ -1167,7 +1184,6 @@ $.fourcat = function(opts) {
     }
     $threads.attr('class', cls);
     if (!init) {
-      centerThreads();
       saveSettings();
     }
   }

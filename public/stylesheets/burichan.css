@@ -1,0 +1,138 @@
+body {
+  font-family: Times, 'Times New Roman', serif;
+  background-color: #EEF2FF;
+  font-size: 12pt;
+}
+
+code {
+  background-color: #EEF2FF;
+}
+
+.button {
+  color: #34345C;
+  box-shadow: none;
+  background: none;
+  text-decoration: underline;
+  padding: 2px 0;
+  border-radius: 0;
+}
+
+.button:hover {
+  background: none;
+  color: #dd0000;
+}
+
+.extended-small .thread {
+  height: 315px;
+}
+
+.extended-large .thread {
+  height: 365px;
+}
+
+#threads {
+  padding: 0;
+}
+
+.thread {
+  background-color: #D6DAF0;
+  margin: 5px;
+  padding: 8px 0 10px 0;
+  overflow: hidden;
+}
+
+.teaser {
+  font-size: 15px;
+  line-height: 17px;
+  margin-top: 2px;
+}
+
+.teaser s {
+  background-color: #000;
+  color: #000;
+}
+
+.meta {
+  font-size: 11px;
+}
+
+.meta b {
+  color: #117743;
+}
+
+.thumb {
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
+}
+
+.hl-high {
+  text-shadow: none;
+}
+
+.hl {
+  border-style: solid;
+}
+
+.pinned {
+  border-style: dashed;
+  border-color: #34345C;
+}
+
+.pinned:hover {
+  border-color: #dd0000;
+}
+
+.panel {
+  font-size: 13px;
+  border: 3px solid #EEF2FF;
+  border-radius: 0;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
+  background-color: #D6DAF0;
+}
+
+.clickbox {
+  padding: 2px 4px;
+  background-color: #EEF2FF;
+  text-decoration: none;
+}
+
+.clickbox:hover {
+  background-color: #EEF2FF;
+}
+
+.tipsy {
+  font-size: 12pt;
+}
+
+#title {
+  color: #AF0A0F;
+}
+
+#qf-box {
+  border: 1px solid #D6DAF0;
+}
+
+#ctrl,
+#totop {
+  border: none;
+}
+
+#order-ctrl,
+#size-ctrl,
+#teaser-ctrl {
+  margin-left: 3px;
+}
+
+#settings .active {
+  color: #dd0000;
+  text-decoration: overline;
+}
+
+#qf-clear {
+  text-decoration: none;
+}
+
+#filter-palette {
+  border: 1px solid #EEF2FF;
+}

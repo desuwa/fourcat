@@ -1,0 +1,159 @@
+body {
+  font: 16px
+    Sylfaen,
+    'Century Schoolbook L',
+    'Times New Roman',
+    serif;
+  color: #232c33;
+  background-color: #F4F0EC;
+}
+
+code {
+  background-color: #FFFAFA;
+}
+
+a {
+  color: #007FFF;
+  border: none;
+}
+
+a:hover,
+a:focus {
+  color: #C41E3A;
+}
+
+input,
+textarea,
+select {
+  background-color: #f7f7f7;
+  border: 1px solid #ccc;
+  border-radius: 3px 3px 3px 3px;
+  box-shadow: 0 0 0 2px #fff inset;
+}
+
+.button {
+  color: #007FFF;
+  box-shadow: none;
+  background: none;
+  padding: 2px 1px;
+  border-radius: 0;
+}
+
+.button:hover {
+  background: none;
+  color: #C41E3A;
+}
+
+.extended-small .thread {
+  height: 350px;
+}
+
+.extended-large .thread {
+  height: 385px;
+}
+
+.hl-high {
+  text-shadow: none;
+}
+
+.thumb {
+  border: none;
+  box-shadow: 0 0 5px rgba(112, 128, 144, 0.45);
+}
+
+.hl {
+  border-style: solid;
+}
+
+.meta {
+  font-size: 12px;
+}
+
+.meta b {
+  color: #00A550;
+}
+
+.teaser {
+  font-size: 15px;
+  line-height: 18px;
+}
+
+.teaser s {
+  background-color: #EAE0C8;
+  color: #EAE0C8;
+}
+
+.pinned {
+  border: 3px dashed #007FFF;
+}
+
+.pinned:hover {
+  border-color: #C41E3A;
+}
+
+.panel {
+  border: none;
+  border-radius: 5px 5px 5px 5px;
+  background-color: #F4F0EC;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+  font-size: 13px;
+  font-family: Sylfaen, 'Times New Roman', serif;
+}
+
+.panel .button {
+  padding: 2px 4px;
+  border-radius: 5px 5px 5px 5px;
+}
+
+.clickbox {
+  background-color: #EAE0C8;
+  color: #000;
+  border-radius: 5px 5px 5px 5px;
+}
+
+.panel .active,
+.clickbox:hover {
+  background-color: #C41E3A;
+  color: #fff;
+}
+
+.tipsy {
+  font-size: 15px;
+}
+
+.tipsy-inner {
+  background-color: #232c33;
+}
+
+.tipsy-arrow-n { border-bottom-color: #232c33; }
+.tipsy-arrow-s { border-top-color: #232c33; }
+.tipsy-arrow-e { border-left-color: #232c33; }
+.tipsy-arrow-w { border-right-color: #232c33; }
+
+#ctrl,
+#totop {
+  border-bottom: 2px dashed #ccc;
+}
+
+#order-ctrl,
+#size-ctrl,
+#teaser-ctrl {
+  margin-left: 3px;
+}
+
+#settings .active {
+  color: #C41E3A;
+  text-decoration: underline;
+}
+
+#qf-clear {
+  text-decoration: none;
+}
+
+#filter-palette {
+  border: 1px solid #EEE;
+}
+
+#footer {
+  font-size: 14px;
+}

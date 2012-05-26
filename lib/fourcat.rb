@@ -14,7 +14,7 @@ module Fourcat
 
 class Catalog
   
-  VERSION     = '1.0.0'
+  VERSION     = '1.1.0'
   
   TAG_REGEX   = /<[^>]+>/i
   PB_REGEX    = /[\u2028\u2029]/
@@ -829,10 +829,15 @@ class Catalog
   def scan_threads(html)
     doc = Nokogiri::HTML.parse(html)
     
-    unless doc.xpath(
-        'html/body/div[@class="pagelist desktop"]/div[@class="next"]/form'
-      )[0]
-      @next_page_empty = true 
+    nextpage = doc.xpath(
+      'html/body/div[@class="pagelist desktop"]/div[@class="next"]')[0]
+    
+    if nextpage && nextpage.children[0]
+      unless nextpage.children[0].name == 'form'
+        @next_page_empty = true
+      end
+    else
+      @log.debug('Can not find the page navigation')
     end
     
     nodes = doc.xpath(

@@ -11,7 +11,7 @@
   <% end %>
   <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
   <script type="text/javascript" src="/javascripts/fourcat-ui.js"></script>
-  <link rel="stylesheet" type="text/css" href="/stylesheets/style.css">
+  <link id="base-css" rel="stylesheet" type="text/css" href="/stylesheets/style.css">
   <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
@@ -194,7 +194,7 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
     <li><span id="theme-nobinds" class="button clickbox left"></span>&mdash; Disable keybinds.</li>
     <li><span id="theme-usessl" class="button clickbox left"></span>&mdash; Use SSL.</li>
   </ul>
-  <h4>Keybinds</h4>
+  <h4>Shortcuts</h4>
   <ul class="clickset">
     <li><kbd>R</kbd> &mdash; Refresh current page</li>
     <li><kbd>X</kbd> &mdash; Reorder threads</li>
@@ -204,6 +204,15 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
   <!--<h4>Custom Menu</h4>
   <div>Example: <em>jp tg mu</em></div>
   <input type="text" id="theme-menu">-->
+  <h4>Stylesheet</h4>
+  <select id="theme-ss" size="1">
+    <option value="0">Default</option>
+    <option data-version="1" value="burichan">Burichan</option>
+    <option data-version="1" value="futaba">Futaba</option>
+    <option data-version="1" value="fuuka">Fuuka</option>
+    <option data-version="1" value="tomorrow">Tomorrow</option>
+    <option data-version="1" value="sylphide">Sylphide</option>
+  </select>
   <h4>Custom <a target="_blank" href="/stylesheets/style.css" title="Reference stylesheet">CSS</a></h4>
   <textarea id="theme-css" rows="4" cols="45"></textarea> 
   <hr>
