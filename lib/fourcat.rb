@@ -14,7 +14,7 @@ module Fourcat
 
 class Catalog
   
-  VERSION     = '1.1.0'
+  VERSION     = '1.1.1'
   
   TAG_REGEX   = /<[^>]+>/i
   PB_REGEX    = /[\u2028\u2029]/
@@ -952,7 +952,9 @@ class Catalog
       end
       
       # Author
-      author = op.xpath(".//div[@id='pi#{th[:id]}']/span[@class='nameBlock']")
+      author = op.xpath(
+        ".//div[@id='pi#{th[:id]}']/span[contains(@class, 'nameBlock')]"
+      )
       if author[0]
         author = author[0].text.strip
         author.gsub!(PB_REGEX, '')
