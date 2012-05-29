@@ -9,9 +9,13 @@
   <% if @opts.write_rss %>
   <link rel="alternate" title="4chan Catalog - /<%= @opts.slug %>/" href="/<%= @opts.slug %>/feed.rss" type="application/rss+xml">
   <% end %>
+  <link id="base-css" rel="stylesheet" type="text/css" href="/stylesheets/style.css">
   <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
   <script type="text/javascript" src="/javascripts/fourcat-ui.js"></script>
-  <link id="base-css" rel="stylesheet" type="text/css" href="/stylesheets/style.css">
+  <script type="text/javascript">
+    var fourcat = new $.fourcat();
+    fourcat.applyCSS();
+  </script>
   <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
@@ -243,7 +247,7 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
       contentUrl: '<%= @opts.content_uri %>'
     <% end %>
     }
-    var fourcat = new $.fourcat(opts);
+    fourcat.init(opts);
     fourcat.loadCatalog(catalog);
     $('#totop').find('.button').click(function() {
       $(window).scrollTop($('#header').offset().top);

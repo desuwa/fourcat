@@ -1,4 +1,4 @@
-$.fourcat = function(opts) {
+$.fourcat = function() {
   
   var fc = this,
   
@@ -78,45 +78,93 @@ $.fourcat = function(opts) {
   
   pulseInterval = null,
   
-  $threads = $('#threads'),
+  $threads,
   $thumbs,
-  $refresh = $('#refresh').tipsy({ gravity: 'sw' }),
-  $qfCtrl = $('#qf-ctrl').click(toggleQuickfilter);
-  $proxyCtrl = $('#proxy-ctrl').tipsy({ gravity: 'se' }),
-  $teaserCtrl = $('#teaser-ctrl'),
-  $sizeCtrl = $('#size-ctrl'),
-  $orderCtrl = $('#order-ctrl').tipsy(),
-  $themePanel = $('#theme'),
-  $hiddenCount = $('#hidden-count'),
-  $hiddenLabel = $('#hidden-label'),
-  $filtersPanel = $('#filters'),
-  $filterList = $('#filter-list'),
-  $filterRgb = $('#filter-rgb').keyup(filterSetCustomColor),
-  $filterRgbOk = $('#filter-rgb-ok').click(selectFilterColor),
-  $filteredCount = $('#filtered-count'),
-  $filteredLabel = $('#filtered-label'),
+  $refresh,
+  $qfCtrl,
+  $proxyCtrl,
+  $teaserCtrl,
+  $sizeCtrl,
+  $orderCtrl,
+  $themePanel,
+  $hiddenCount,
+  $hiddenLabel,
+  $filtersPanel,
+  $filterList,
+  $filterRgb,
+  $filterRgbOk,
+  $filteredCount,
+  $filteredLabel,
   $filterPalette = null,
   
-  ctxCmds = null;
+  ctxCmds;
   
-  // ---
-  
-  $('#qf-clear').click(toggleQuickfilter);
-  
-  $('#theme-ctrl').click(showThemeEditor);
-  
-  $('#filters-ctrl').click(showFilters);
-  
-  // Enterprise Grade polyfilling
   if (!Array.prototype.indexOf) {
     Array.prototype.indexOf = function () { return -1; }
   }
   
-  if (hasContextMenu) {
-    buildContextMenu();
-  }
+  loadTheme();
   
-  $('#filters-clear-hidden').click(clearHiddenThreads);
+  // ---
+  
+  fc.init = function(opts) {
+    applyTheme(activeTheme, true);
+    
+    $threads = $('#threads');
+    $refresh = $('#refresh').tipsy({ gravity: 'sw' });
+    $qfCtrl = $('#qf-ctrl').click(toggleQuickfilter);
+    $proxyCtrl = $('#proxy-ctrl').tipsy({ gravity: 'se' });
+    $teaserCtrl = $('#teaser-ctrl');
+    $sizeCtrl = $('#size-ctrl');
+    $orderCtrl = $('#order-ctrl').tipsy();
+    $themePanel = $('#theme');
+    $hiddenCount = $('#hidden-count');
+    $hiddenLabel = $('#hidden-label');
+    $filtersPanel = $('#filters');
+    $filterList = $('#filter-list');
+    $filterRgb = $('#filter-rgb').keyup(filterSetCustomColor);
+    $filterRgbOk = $('#filter-rgb-ok').click(selectFilterColor);
+    $filteredCount = $('#filtered-count');
+    $filteredLabel = $('#filtered-label');
+    $('#filters-clear-hidden').click(clearHiddenThreads);
+    $('#qf-clear').click(toggleQuickfilter);
+    $('#theme-ctrl').click(showThemeEditor);
+    $('#filters-ctrl').click(showFilters);
+    
+    if (hasContextMenu) {
+      buildContextMenu();
+    }
+    
+    $sizeCtrl.click(function() {
+      fc.setSize(options.thsize == 'small' ? 'large' : 'small');
+    });
+    
+    $orderCtrl.click(cycleOrder);
+    
+    $teaserCtrl.click(function() {
+      fc.setExtended(!options.extended);
+    });
+    
+    $proxyCtrl.click(function() {
+      fc.setProxy(!options.proxy);
+    });
+    
+    if (opts) {
+      $.extend(options, defaults, opts);
+    }
+    else {
+      options = defaults;
+    }
+    
+    fc.loadSettings();
+    fc.loadFilters();
+    
+    bindGlobalShortcuts();
+    
+    fc.setSize(options.thsize, true);
+    fc.setOrder(options.orderby, true);
+    fc.setExtended(options.extended, true);
+  }
   
   fc.loadCatalog = function(c) {
     catalog = c;
@@ -901,7 +949,7 @@ $.fourcat = function(opts) {
     nav.style.display = 'block';
   }
   
-  fc.loadTheme = function() {
+  function loadTheme() {
     if (!hasWebStorage) return;
     
     var customTheme = localStorage.getItem('theme');
@@ -909,11 +957,9 @@ $.fourcat = function(opts) {
     if (!customTheme) return;
     
     activeTheme = $.parseJSON(customTheme);
-    
-    applyTheme(activeTheme);
   }
   
-  function applyTheme(customTheme) {
+  function applyTheme(customTheme, nocss) {
     var i, j, head, header, nav, slugs, slughash, hasHidden, style, link, more;
     
     if (customTheme.menu) {
@@ -994,6 +1040,18 @@ $.fourcat = function(opts) {
       if (activeTheme.nobinds != customTheme.nobinds) {
         $(document).on('keyup', processKeybind);
       }
+    }
+    
+    if (!nocss) {
+      fc.applyCSS(customTheme);
+    }
+  }
+  
+  fc.applyCSS = function(customTheme) {
+    var head, link, style;
+    
+    if (!customTheme) {
+      customTheme = activeTheme;
     }
     
     head = document.head || document.getElementsByTagName('head')[0];
@@ -1262,20 +1320,6 @@ $.fourcat = function(opts) {
     }
   }
   
-  $sizeCtrl.click(function() {
-    fc.setSize(options.thsize == 'small' ? 'large' : 'small');
-  });
-  
-  $orderCtrl.click(cycleOrder);
-  
-  $teaserCtrl.click(function() {
-    fc.setExtended(!options.extended);
-  });
-  
-  $proxyCtrl.click(function() {
-    fc.setProxy(!options.proxy);
-  });
-  
   fc.buildThreads = function() {
     var
       tip, i, j, fid, id, entry, thread, af, hl, onTop, pinned, provider,
@@ -1464,23 +1508,6 @@ $.fourcat = function(opts) {
       (!options.extended ? thread.teaser : null)
     );
   }
-  
-  if (opts) {
-    $.extend(options, defaults, opts);
-  }
-  else {
-    options = defaults;
-  }
-  
-  fc.loadSettings();
-  fc.loadTheme();
-  fc.loadFilters();
-  
-  bindGlobalShortcuts();
-  
-  fc.setSize(options.thsize, true);
-  fc.setOrder(options.orderby, true);
-  fc.setExtended(options.extended, true);
 };
 
 $.fourcat.prototype.getTip = function(author, date, teaser) {

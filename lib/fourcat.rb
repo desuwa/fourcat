@@ -14,7 +14,7 @@ module Fourcat
 
 class Catalog
   
-  VERSION     = '1.1.1'
+  VERSION     = '1.1.2'
   
   TAG_REGEX   = /<[^>]+>/i
   PB_REGEX    = /[\u2028\u2029]/
@@ -647,16 +647,12 @@ class Catalog
       
       @next_page_empty = false
       
-      threads[run] = {}
+      threads[run] = []
       
       for page in 0...@opts.page_count[run]
         if @next_page_empty
           @log.debug "Page #{page} is empty, breaking"
           break
-        end
-        if workers[lw = "#{run - 1}-#{page}"] && workers[lw].alive?
-          @log.debug "Last run worker is still alive, skipping page #{page}"
-          next
         end
         while active_workers >= @opts.workers_limit
           sleep(@opts.req_delay)
@@ -668,7 +664,7 @@ class Catalog
             th[page] = scan_threads(get_page(page))
           rescue HTTPNotFound => e
             @log.debug "Page #{page} not found"
-            @max_page = page
+            @next_page_empty = true
           rescue StandardError => e
             @pages_dropped += 1
             @log.error get_error(e)
@@ -678,9 +674,11 @@ class Catalog
         end
         sleep @opts.req_delay
       end
+      
+      while active_workers > 0
+        sleep 0.5
+      end
     end
-    
-    wait_for_workers(workers)
     
     threadlist = {}
     stickies = []
@@ -690,7 +688,8 @@ class Catalog
     run = threads.length - 1
     while run >= 0
       page_order = []
-      threads[run].each_value do |page_threads|
+      threads[run].each do |page_threads|
+        next unless page_threads
         page_threads.each do |id, thread|
           next if threadlist.has_key?(id)
           threadlist[id] = thread
@@ -776,7 +775,9 @@ class Catalog
         sleep @opts.req_delay
       end
       
-      wait_for_workers(workers)
+      while active_workers > 0
+        sleep 0.5
+      end
     end
     
     unless @first_run
@@ -1038,20 +1039,6 @@ class Catalog
       @log.debug 'update_stats: skipping first run'
     end
     @last_hour = now.hour
-  end
-  
-  # Waits until all workers are dead
-  # @param [Hash] workers Hash of workers
-  def wait_for_workers(workers)
-    while !workers.empty?
-      @log.debug 'Waiting for workers...'
-      workers.each do |k, w|
-        while w && w.alive?
-          sleep 1
-        end
-        workers.delete(k)
-      end
-    end
   end
   
   # File writer
