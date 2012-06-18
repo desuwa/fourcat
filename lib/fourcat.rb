@@ -14,7 +14,7 @@ module Fourcat
 
 class Catalog
   
-  VERSION     = '1.1.2'
+  VERSION     = '1.1.3'
   
   TAG_REGEX   = /<[^>]+>/i
   PB_REGEX    = /[\u2028\u2029]/
@@ -184,7 +184,7 @@ class Catalog
   #   is greater than the 'refresh_thres'. Defaults to nil (disabled)
   #
   # @option opts [Integer] teaser_length
-  #   Excerpt (teaser) character length. 0 disables teaser generation.
+  #   Excerpt (teaser) character length. 0 disables teaser truncation.
   #   Defaults to 200
   #
   # @option opts [String] server
@@ -928,6 +928,8 @@ class Catalog
           end
         th[:teaser].gsub!(/\n+/, ' ')
         th[:teaser].gsub!(PB_REGEX, '')
+      else
+        th[:teaser] = th[:body].gsub(/\n+/, ' ')
       end
       th[:body].gsub!("\n", '<br>')
       
