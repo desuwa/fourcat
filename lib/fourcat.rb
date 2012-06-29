@@ -14,7 +14,7 @@ module Fourcat
 
 class Catalog
   
-  VERSION     = '1.1.3'
+  VERSION     = '1.2.0'
   
   TAG_REGEX   = /<[^>]+>/i
   PB_REGEX    = /[\u2028\u2029]/
@@ -54,7 +54,6 @@ class Catalog
     :refresh_range    => [60, 300],
     :refresh_step     => 10,
     :refresh_thres    => nil,
-    :teaser_length    => 200,
     :server           => 'http://boards.4chan.org/',
     :workers_limit    => 3
   }
@@ -321,9 +320,6 @@ class Catalog
     # jsonified threadlist cache for when write_json and write_html are true
     @json_cache = nil
     
-    # Last full refresh cycle time (Time UTC)
-    @last_full_cycle = 0
-    
     # Last successful write time (Time UTC)
     @mtime = 0
     
@@ -399,28 +395,6 @@ class Catalog
     @stats_io.close if @stats_io
   end
   
-  # Generates the excerpt (teaser)
-  # @param [String] str Comment body
-  # @param [true, false] has_spoilers Teaser contains spoilers
-  # @return [String]
-  def cut_teaser(str, has_spoilers = false)
-    teaser = @entities.decode(str)
-    if teaser.length > @opts.teaser_length
-      teaser = @entities.encode(teaser[0, @opts.teaser_length])
-      if has_spoilers
-        teaser.gsub!(/\[[\/spoiler\]]{0,8}$/, '')
-        o = teaser.scan(/\[spoiler\]/).length
-        c = teaser.scan(/\[\/spoiler\]/).length
-        if (d = o - c) > 0
-          teaser << '[/spoiler]' * d
-        end
-      end
-      teaser << '…'
-    else
-      str
-    end
-  end
-  
   # HTTP requests
   # @param [Net::HTTP] http HTTP object to use for the connection
   # @param [String] path
@@ -434,6 +408,8 @@ class Catalog
           raise HTTPNotFound, "Not Found #{http.address}#{path}"
         elsif resp.code == '302'
           raise HTTPFound, 'HTTP 302'
+        elsif resp.code == '301'
+          raise "Skipping after HTTP 301: #{http.address}#{path}"
         else
           raise HTTPError, "HTTP #{resp.code}"
         end
@@ -635,7 +611,6 @@ class Catalog
   def refresh
     @log.debug "Refreshing /#{@opts.slug}/"
     
-    cycle_start = Time.now.utc
     threads = []
     workers = {}
     active_workers = 0
@@ -788,15 +763,10 @@ class Catalog
     
     @log.debug "Delay is #{@opts.refresh_delay} (#{new_threads}/#{new_replies})"
     
-    if @opts.no_partial && @pages_dropped > 0 &&
-        (cycle_start - @last_full_cycle).to_i < @opts.refresh_range[1]
+    if @opts.no_partial && @pages_dropped > 0
       @log.warn 'Incomplete refresh cycle, skipping output'
     else
       @mtime = Time.now.utc
-      
-      if @pages_dropped == 0 || @last_full_cycle == 0
-        @last_full_cycle = @mtime 
-      end
       
       begin
         write_json(threadlist, order)
@@ -914,29 +884,23 @@ class Catalog
         th[:body] = ''
       end
       
-      # Teaser
-      if @opts.teaser_length > 0
-        th[:teaser] =
-          unless th[:title].empty?
-            unless th[:body].empty?
-              cut_teaser("#{th[:title]}: #{th[:body]}", has_spoilers)
-            else
-              cut_teaser(th[:title])
-            end
-          else
-            cut_teaser(th[:body], has_spoilers)
-          end
-        th[:teaser].gsub!(/\n+/, ' ')
-        th[:teaser].gsub!(PB_REGEX, '')
-      else
-        th[:teaser] = th[:body].gsub(/\n+/, ' ')
-      end
-      th[:body].gsub!("\n", '<br>')
-      
       if has_spoilers
         th[:body].gsub!(/\[\/?spoiler\]/, BB_TAGS) 
-        th[:teaser].gsub!(/\[\/?spoiler\]/, BB_TAGS)
       end
+      
+      # Teaser
+      th[:teaser] =
+        unless th[:title].empty?
+          unless th[:body].empty?
+            "#{th[:title]}: #{th[:body].gsub(/\n+/, ' ')}"
+          else
+            th[:title]
+          end
+        else
+          th[:body].gsub(/\n+/, ' ')
+        end
+      
+      th[:body].gsub!("\n", '<br>')
       
       # Thumbnail
       thumb = op.xpath("div[@id='f#{th[:id]}']")[0]

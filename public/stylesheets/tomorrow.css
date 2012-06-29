@@ -75,15 +75,15 @@ select {
   text-shadow: none;
 }
 
-.extended-small .thread {
-  height: 300px;
-}
-
 .panel {
   font-size: 12px;
   border: 2px solid #1D1F21;
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
   background-color: #282A2E;
+}
+
+.extended-small .thread {
+  max-height: 300px;
 }
 
 .teaser s {

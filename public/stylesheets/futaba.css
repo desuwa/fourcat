@@ -22,25 +22,32 @@ code {
   background: none;
   color: #dd0000;
 }
-
-.extended-small .thread {
-  height: 320px;
-}
-
-.extended-large .thread {
-  height: 365px;
-}
-
 .thread {
   border: 1px inset #aaa;
   margin: 1px;
   padding: 1px;
-  overflow: hidden;
+}
+
+.small .thread {
+  height: 170px;
+}
+
+.large .thread {
+  height: 270px;
+}
+
+.extended-small .thread {
+  min-height: 350px;
+  max-height: 350px;
+}
+
+.extended-large .thread {
+  height: 400px;
 }
 
 .teaser {
   font-size: 15px;
-  line-height: 17px;
+  line-height: 15px;
 }
 
 .teaser s {

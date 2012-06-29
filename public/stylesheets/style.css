@@ -75,6 +75,10 @@ input {
   height: 18px;
 }
 
+s {
+  text-decoration: none;
+}
+
 /* Clickables */
 .button {
   color: #fff;
@@ -476,6 +480,9 @@ input {
   vertical-align: top;
   display: inline-block;
   word-wrap: break-word;
+  overflow: hidden;
+  margin-top: 5px;
+  padding: 5px 0 3px 0;
 }
 
 .thread a {
@@ -501,13 +508,13 @@ input {
 /* Thread in compact mode with teaser displayed */
 .extended-small .thread {
   width: 165px;
-  height: 290px;
+  max-height: 300px;
 }
 
 /* Thread in large mode with teaser displayed */
 .extended-large .thread {
   width: 270px;
-  height: 350px;
+  max-height: 400px;
 }
 
 /* Thumbnail */
@@ -562,7 +569,7 @@ input {
 /* Teaser, hidden */
 .teaser {
   line-height: 14px;
-  margin-top: 3px;
+  margin-top: 2px;
   padding: 0 2px;
   display: none;
 }
@@ -575,7 +582,6 @@ input {
 
 /* spoilers */
 .teaser s {
-  text-decoration: none;
   background-color: #a1a8c7;
   color: #a1a8c7;
   text-shadow: none;

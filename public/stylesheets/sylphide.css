@@ -45,11 +45,11 @@ select {
 }
 
 .extended-small .thread {
-  height: 350px;
+  max-height: 350px;
 }
 
 .extended-large .thread {
-  height: 385px;
+  max-height: 450px;
 }
 
 .hl-high {

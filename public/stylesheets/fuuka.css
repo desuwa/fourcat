@@ -23,14 +23,6 @@ code {
   color: #dd0000;
 }
 
-.extended-small .thread {
-  height: 315px;
-}
-
-.extended-large .thread {
-  height: 365px;
-}
-
 #threads {
   padding: 0;
 }
@@ -39,12 +31,11 @@ code {
   background-color: #D6F0DA;
   margin: 5px;
   padding: 8px 0 10px 0;
-  overflow: hidden;
 }
 
 .teaser {
   font-size: 15px;
-  line-height: 17px;
+  line-height: 15px;
   margin-top: 2px;
 }
 
