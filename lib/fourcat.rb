@@ -14,7 +14,7 @@ module Fourcat
 
 class Catalog
   
-  VERSION     = '1.2.0'
+  VERSION     = '1.2.1'
   
   TAG_REGEX   = /<[^>]+>/i
   PB_REGEX    = /[\u2028\u2029]/
@@ -181,10 +181,6 @@ class Catalog
   # @option opts [Integer, nil] refresh_thres
   #   Reduces the refresh delay by 'refresh_delay' if the number of new replies
   #   is greater than the 'refresh_thres'. Defaults to nil (disabled)
-  #
-  # @option opts [Integer] teaser_length
-  #   Excerpt (teaser) character length. 0 disables teaser truncation.
-  #   Defaults to 200
   #
   # @option opts [String] server
   #   Remote server URL, defaults to 'http://boards.4chan.org/'
@@ -851,15 +847,26 @@ class Catalog
       
       # Comment
       if msg = op.xpath('blockquote[@class="postMessage"]')[0]
+        # Comment too long. Click here to view the full text.
+        if meta = msg.xpath('span[@class="abbr"]')[0]
+          meta.remove
+        end
+        
+        # Remove EXIF meta
         if @opts.remove_exif
           if (meta = msg.last_element_child) && meta['class'] == 'exif'
             meta.remove
-            (meta = msg.xpath('span[@class="abbr"]')[0]) && meta.remove
           end
         end
+        
+        # Remove Oekaki meta
         if @opts.remove_oekaki
-          (meta = msg.last_element_child) && meta.name == 'small' && meta.remove
+          if (meta = msg.last_element_child) && meta.name == 'small'
+            meta.remove
+          end
         end
+        
+        # Spoilers
         if @opts.spoiler_text && !msg.text.empty?
           spoilers = msg.xpath('span[@class="spoiler"]')
           if spoilers.empty?
