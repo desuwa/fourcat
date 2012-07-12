@@ -54,7 +54,12 @@ select {
 
 .thumb {
   border: none;
-  opacity: 0.85;
+}
+
+@media all and (min-width: 800px) {
+  .thumb {
+    opacity: 0.85;
+  }
 }
 
 .thumb:hover,
