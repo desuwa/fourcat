@@ -14,7 +14,7 @@ module Fourcat
 
 class Catalog
   
-  VERSION     = '1.2.1'
+  VERSION     = '1.2.2'
   
   TAG_REGEX   = /<[^>]+>/i
   PB_REGEX    = /[\u2028\u2029]/
@@ -404,20 +404,16 @@ class Catalog
           raise HTTPNotFound, "Not Found #{http.address}#{path}"
         elsif resp.code == '302'
           raise HTTPFound, 'HTTP 302'
-        elsif resp.code == '301'
-          raise "Skipping after HTTP 301: #{http.address}#{path}"
         else
-          raise HTTPError, "HTTP #{resp.code}"
+          raise "Skipping after HTTP #{resp.code}: #{http.address}#{path}"
         end
       end
-    rescue HTTPNotFound => e
-      raise e
-    rescue Timeout::Error, Errno::ECONNRESET, HTTPError => e
+    rescue Timeout::Error, Errno::ECONNRESET, HTTPFound => e
       if try > @opts.retries
         raise "Skipping after #{e.message}: #{http.address}#{path}"
       end
       @log.debug "Retrying after #{e.message} (#{try}): #{http.address}#{path}"
-      if e.kind_of?(HTTPFound)
+      if e === HTTPFound
         try += @opts.retries
         path << '?4cat'
       else
