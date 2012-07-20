@@ -3,7 +3,7 @@ require 'fileutils'
 require 'htmlentities'
 require 'json'
 require 'logger'
-require 'net/http'
+require 'net/https'
 require 'nokogiri'
 require 'ostruct'
 require 'time'
@@ -14,7 +14,7 @@ module Fourcat
 
 class Catalog
   
-  VERSION     = '1.2.2'
+  VERSION     = '1.2.3'
   
   TAG_REGEX   = /<[^>]+>/i
   PB_REGEX    = /[\u2028\u2029]/
@@ -54,7 +54,7 @@ class Catalog
     :refresh_range    => [60, 300],
     :refresh_step     => 10,
     :refresh_thres    => nil,
-    :server           => 'http://boards.4chan.org/',
+    :server           => 'https://boards.4chan.org/',
     :workers_limit    => 3
   }
   
@@ -446,6 +446,8 @@ class Catalog
   # @see #fetch
   def get_page(page_num)
     http = Net::HTTP.new(@pages_uri.host, @pages_uri.port)
+    http.use_ssl = true
+    http.verify_mode = OpenSSL::SSL::VERIFY_NONE
     http.open_timeout = http.read_timeout = @opts.req_timeout
     
     path = "#{@pages_uri.path}#{@board}/"
