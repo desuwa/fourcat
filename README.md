@@ -128,3 +128,11 @@ Remove Oekaki metadata.
   **Default**: `nil`
 
 Fuuka style archive URL. ex: `http://archive.example.com/jp/thread/`
+
+***
+
+> **Symbol**: `use_ssl`  
+  **Type**: true, false  
+  **Default**: `false`
+
+Use HTTP/SSL.

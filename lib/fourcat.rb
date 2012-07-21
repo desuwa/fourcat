@@ -3,7 +3,7 @@ require 'fileutils'
 require 'htmlentities'
 require 'json'
 require 'logger'
-require 'net/https'
+require 'net/http'
 require 'nokogiri'
 require 'ostruct'
 require 'time'
@@ -54,7 +54,7 @@ class Catalog
     :refresh_range    => [60, 300],
     :refresh_step     => 10,
     :refresh_thres    => nil,
-    :server           => 'https://boards.4chan.org/',
+    :use_ssl          => false,
     :workers_limit    => 3
   }
   
@@ -182,8 +182,8 @@ class Catalog
   #   Reduces the refresh delay by 'refresh_delay' if the number of new replies
   #   is greater than the 'refresh_thres'. Defaults to nil (disabled)
   #
-  # @option opts [String] server
-  #   Remote server URL, defaults to 'http://boards.4chan.org/'
+  # @option opts [String, false] use_ssl
+  #   Use HTTP/SSL. Defaults to false.
   #
   # @example Initialize a catalog
   #   catalog = Catalog.new('jp', {
@@ -305,7 +305,16 @@ class Catalog
       '\[(?:<a href="[0-9]{1,2}">|<strong>)([0-9]{1,2})(?:</a>|</strong>)\] '
     )
     
-    @pages_uri = URI.parse(@opts.server)
+    @server = 
+      if @opts.use_ssl
+        require 'net/https'
+        'https'
+      else
+        'http'
+      end
+    @server << '://boards.4chan.org/'
+    
+    @pages_uri = URI.parse(@server)
     
     # Number of dropped pages during a refresh cycle
     @pages_dropped = 0
@@ -396,6 +405,11 @@ class Catalog
   # @param [String] path
   # @return [String] Response body
   def fetch(http, path)
+    if @opts.use_ssl
+      http.use_ssl = true
+      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+    end
+    
     try = 1
     begin
       resp = http.request_get(path, @headers)
@@ -436,7 +450,7 @@ class Catalog
   # @see #fetch
   def get_image(url)
     uri = URI.parse(url)
-    http = Net::HTTP.new(uri.host, uri.port)
+    http = Net::HTTP.new(uri.host, @pages_uri.port)
     http.open_timeout = http.read_timeout = @opts.req_timeout
     fetch(http, uri.path).body
   end
@@ -446,8 +460,6 @@ class Catalog
   # @see #fetch
   def get_page(page_num)
     http = Net::HTTP.new(@pages_uri.host, @pages_uri.port)
-    http.use_ssl = true
-    http.verify_mode = OpenSSL::SSL::VERIFY_NONE
     http.open_timeout = http.read_timeout = @opts.req_timeout
     
     path = "#{@pages_uri.path}#{@board}/"
@@ -554,7 +566,7 @@ class Catalog
       :anon       => @opts.default_name,
       :mtime      => @mtime.to_i,
       :proxy      => @opts.proxy,
-      :server     => "#{@opts.server}#{@board}/"
+      :server     => "#{@server}#{@board}/"
     }.to_json
     
     if @opts.write_json && @opts.write_html
@@ -568,7 +580,7 @@ class Catalog
   # @param [Integer] id Thread id
   # @return [String] the thread's URL
   def link_to_thread(id)
-    "#{@opts.server}#{@board}/res/#{id}#{@opts.extension}"
+    "#{@server}#{@board}/res/#{id}#{@opts.extension}"
   end
   
   # Creates a new erubis template from a file
