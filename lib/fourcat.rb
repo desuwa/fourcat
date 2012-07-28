@@ -14,7 +14,7 @@ module Fourcat
 
 class Catalog
   
-  VERSION     = '1.2.3'
+  VERSION     = '1.2.4'
   
   TAG_REGEX   = /<[^>]+>/i
   PB_REGEX    = /[\u2028\u2029]/
@@ -49,7 +49,7 @@ class Catalog
     :req_timeout      => 10,
     :retries          => 2,
     :no_partial       => true,
-    :page_count       => [16, 2],
+    :page_count       => [11, 2],
     :refresh_delay    => 60,
     :refresh_range    => [60, 300],
     :refresh_step     => 10,

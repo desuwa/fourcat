@@ -21,7 +21,7 @@ $.fourcat = function() {
       ['#FBCEB1', '#FFBF00', '#ADFF2F', '#0047AB'],
       ['#00A550', '#007FFF', '#AF0A0F', '#B5BD68']
     ],
-    threadsPerPage: 10
+    threadsPerPage: 15
   },
   
   keybinds = {
