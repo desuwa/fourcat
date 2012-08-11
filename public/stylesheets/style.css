@@ -25,7 +25,7 @@ h3 {
 
 h4 {
   font-size: 13px;
-  margin: 10px 0px 8px 0px;
+  margin: 10px 0px 5px 0px;
 }
 
 a {
@@ -318,7 +318,7 @@ s {
 /* Theme editor panel */
 #theme {
   width: 330px;
-  top: 70px;
+  top: 60px;
   left: 50%;
   margin-left: -178px;
 }
@@ -330,7 +330,7 @@ s {
   }
 }
 
-#theme-menu {
+.settings-field {
   margin-top: 5px;
   width: 100%;
 }
@@ -351,7 +351,7 @@ s {
 /* Filters panel */
 #filters {
   width: 360px;
-  top: 70px;
+  top: 60px;
   left: 50%;
   margin-left: -193px;
 }
@@ -563,7 +563,6 @@ s {
   font-size: 10px;
   line-height: 8px;
   margin-top: 1px;
-  text-transform: uppercase;
 }
 
 /* Teaser, hidden */
@@ -710,7 +709,7 @@ s {
 
 /* Tooltips */ 
 .tipsy { font-size: 12px; position: absolute; padding: 5px; z-index: 100000; }
-  .tipsy-inner { padding: 5px 8px 4px 8px; background-color: black; color: #E5E4E2; max-width: 300px; text-align: left; word-wrap: break-word; }
+  .tipsy-inner { padding: 5px 8px 4px 8px; background-color: black; color: #E5E4E2; max-width: 400px; text-align: left; word-wrap: break-word; }
 
   /* Rounded corners */
   .tipsy-inner { border-radius: 3px; }

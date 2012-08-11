@@ -116,7 +116,7 @@ $.fourcat = function() {
     $proxyCtrl = $('#proxy-ctrl').tipsy({ gravity: 'se' });
     $teaserCtrl = $('#teaser-ctrl');
     $sizeCtrl = $('#size-ctrl');
-    $orderCtrl = $('#order-ctrl').tipsy();
+    $orderCtrl = $('#order-ctrl');
     $themePanel = $('#theme');
     $hiddenCount = $('#hidden-count');
     $hiddenLabel = $('#hidden-label');
@@ -136,45 +136,40 @@ $.fourcat = function() {
     }
     
     $sizeCtrl.click(function() {
-      fc.setSize(options.thsize == 'small' ? 'large' : 'small');
+      setSize(options.thsize == 'small' ? 'large' : 'small');
     });
     
     $orderCtrl.click(cycleOrder);
     
     $teaserCtrl.click(function() {
-      fc.setExtended(!options.extended);
+      setExtended(!options.extended);
     });
     
     $proxyCtrl.click(function() {
-      fc.setProxy(!options.proxy);
+      setProxy(!options.proxy);
     });
     
-    if (opts) {
-      $.extend(options, defaults, opts);
-    }
-    else {
-      options = defaults;
-    }
+    $.extend(options, defaults, opts);
     
-    fc.loadSettings();
-    fc.loadFilters();
+    loadSettings();
+    loadFilters();
     
     bindGlobalShortcuts();
     
-    fc.setSize(options.thsize, true);
-    fc.setOrder(options.orderby, true);
-    fc.setExtended(options.extended, true);
+    setSize(options.thsize, true);
+    setOrder(options.orderby, true);
+    setExtended(options.extended, true);
   }
   
   fc.loadCatalog = function(c) {
     catalog = c;
+    setProxy(options.proxy, true);
     setSSL(activeTheme.usessl);
-    fc.loadStorage();
+    loadStorage();
     updateTime();
     $refresh[0].setAttribute('data-tip', $refresh[0].getAttribute('data-label')
-      + ' ' + fc.getDuration(catalog.delay, true));
-    fc.setProxy(options.proxy, true);
-    fc.buildThreads();
+      + ' ' + getDuration(catalog.delay, true));
+    buildThreads();
     clearInterval(pulseInterval);
     pulseInterval = setInterval(updateTime, 10000);
   }
@@ -257,7 +252,7 @@ $.fourcat = function() {
       var regexEscape = getRegexSpecials();
       qfstr = qfstr.replace(regexEscape, '\\$1');
       quickFilterPattern = new RegExp(qfstr, 'i');
-      fc.buildThreads();
+      buildThreads();
     } else {
       clearQuickfilter();
     }
@@ -271,7 +266,7 @@ $.fourcat = function() {
     }
     else {
       quickFilterPattern = false;
-      fc.buildThreads();
+      buildThreads();
     }
   }
   
@@ -337,7 +332,7 @@ $.fourcat = function() {
       pinnedThreads[tid] = catalog.threads[tid].r || 0;
     }
     localStorage.setItem('pin-' + catalog.slug, JSON.stringify(pinnedThreads));
-    fc.buildThreads();
+    buildThreads();
   }
   
   function toggleThreadHide(tid) {
@@ -378,7 +373,7 @@ $.fourcat = function() {
     hiddenThreads = {};
     localStorage.removeItem('hide-' + catalog.slug);
     if (hiddenThreadsCount > 0) {
-      fc.buildThreads();
+      buildThreads();
     }
     return false;
   }
@@ -386,7 +381,7 @@ $.fourcat = function() {
   function clearPinnedThreads() {
     pinnedThreads = {};
     localStorage.removeItem('pin-' + catalog.slug);
-    fc.buildThreads();
+    buildThreads();
     return false;
   }
   
@@ -552,7 +547,7 @@ $.fourcat = function() {
   }
   
   // Loads patterns from the localStorage and builds regexps
-  fc.loadFilters = function() {
+  loadFilters = function() {
     if (!hasWebStorage) return;
     
     activeFilters = {};
@@ -563,30 +558,24 @@ $.fourcat = function() {
     rawFilters = $.parseJSON(rawFilters);
     
     var
+      fid, v, w, wordcount,
       wordSepS, wordSepE, orJoin,
       regexType = /^\/(.*)\/(i?)$/,
       regexOrNorm = /\s*\|+\s*/g,
       regexWc = /\\\*/g, replWc = '[^\\s]*',
       regexEscape = getRegexSpecials(),
       match, inner, words, rawPattern, pattern, orOp, orCluster, type;
-    
-    if (options.filterFullWords) {
-      wordSepS = '(?:^|\\b)';
-      wordSepE = '(?:$|\\b)';
-      orJoin = wordSepS + '|' + wordSepE;
-    }
-    else {
-      wordSepS = wordSepE = '';
-      orJoin = '|';
-    }
+      
+    wordSepS = '(?=.*\\b';
+    wordSepE = '\\b)';
     
     try {
-      for (var fid in rawFilters) {
+      for (fid in rawFilters) {
         if (rawFilters[fid].active && rawFilters[fid].pattern != '') {
           rawPattern = rawFilters[fid].pattern;
           if (rawPattern[0] == '#') {
             type = 1;
-            pattern = rawPattern.slice(1).replace(regexEscape, '\\$1');
+            pattern = new RegExp(rawPattern.slice(1).replace(regexEscape, '\\$1'));
           }
           else {
             type = 0;
@@ -599,24 +588,30 @@ $.fourcat = function() {
             else {
               words = rawPattern.replace(regexOrNorm, '|').split(' ');
               pattern = '';
-              for (var w = words.length - 1; w >= 0; w--) {
-                if (words[w].indexOf('|') != -1) {
-                  orOp = words[w].split('|');
-                  orCluster = [];
-                  for (var v = orOp.length - 1; v >= 0; v--) {
-                    if (orOp[v] != '') {
-                      orCluster.push(orOp[v].replace(regexEscape, '\\$1'));
-                    }
-                  }
-                  inner = orCluster.join('|').replace(regexWc, replWc);
-                  pattern += ('(?=.*' + wordSepS + '(' + inner + ')' + wordSepE + ')');
-                }
-                else {
-                  inner = words[w].replace(regexEscape, '\\$1').replace(regexWc, replWc);
-                  pattern += ('(?=.*' + wordSepS + inner + wordSepE + ')');
-                }
+              wordcount = words.length;
+              if (false) {
+                pattern = new RegExp(wordSepS + inner + wordSepE, 'i');
               }
-              pattern = new RegExp(pattern, 'i');
+              else {
+                for (w = 0; w < wordcount; ++w) {
+                  if (words[w].indexOf('|') != -1) {
+                    orOp = words[w].split('|');
+                    orCluster = [];
+                    for (v = orOp.length - 1; v >= 0; v--) {
+                      if (orOp[v] != '') {
+                        orCluster.push(orOp[v].replace(regexEscape, '\\$1'));
+                      }
+                    }
+                    inner = orCluster.join('|').replace(regexWc, replWc);
+                    pattern += wordSepS + '(' + inner + ')' + wordSepE;
+                  }
+                  else {
+                    inner = words[w].replace(regexEscape, '\\$1').replace(regexWc, replWc);
+                    pattern += wordSepS + inner + wordSepE;
+                  }
+                }
+                pattern = new RegExp('^' + pattern, 'i');
+              }
             }
           }
           //console.log('Resulting regex: ' + pattern);
@@ -670,8 +665,8 @@ $.fourcat = function() {
     
     $msg.html('Done').attr('class', 'msg-ok').show().delay(2000).fadeOut(500);
     
-    fc.loadFilters();
-    fc.buildThreads();
+    loadFilters();
+    buildThreads();
     updateFilterHitCount();
   }
   
@@ -873,7 +868,7 @@ $.fourcat = function() {
     if ($filtersPanel.css('display') == 'none') {
       var
         buttons = ['notipsy', 'magnify', 'altKey', 'nobinds', 'usessl'],
-        ss, menu,
+        ss, field,
         theme = localStorage.getItem('theme');
       
       theme = theme ? JSON.parse(theme) : {};
@@ -887,8 +882,8 @@ $.fourcat = function() {
         }
       }
       
-      if (theme.menu && (menu = document.getElementById('theme-menu'))) {
-        menu.value = theme.menu;
+      if (theme.menu && (field = document.getElementById('theme-menu'))) {
+        field.value = theme.menu;
       }
       
       if (theme.ss) {
@@ -1097,7 +1092,7 @@ $.fourcat = function() {
   
   // Applies and saves the theme to localStorage
   function saveTheme() {
-    var ss, menu, css, style, customTheme = {};
+    var ss, field, css, style, customTheme = {};
     
     if ($('#theme-notipsy').hasClass('active')) {
       customTheme.notipsy = true;
@@ -1120,7 +1115,7 @@ $.fourcat = function() {
     }
     if (customTheme.usessl != activeTheme.usessl) {
       setSSL(!!customTheme.usessl);
-      fc.buildThreads();
+      buildThreads();
     }
     
     ss = document.getElementById('theme-ss');
@@ -1129,9 +1124,9 @@ $.fourcat = function() {
         ss.options[ss.selectedIndex].getAttribute('data-version');
     }
     
-    menu = document.getElementById('theme-menu');
-    if (menu && (menu.value != '')) {
-      customTheme.menu = menu.value;
+    field = document.getElementById('theme-menu');
+    if (field && (field.value != '')) {
+      customTheme.menu = field.value;
     }
     
     if ((css = document.getElementById('theme-css').value) != '') {
@@ -1176,7 +1171,7 @@ $.fourcat = function() {
   }
   
   // Loads data from webStorage
-  fc.loadStorage = function() {
+  loadStorage = function() {
     if (hasWebStorage && hasNativeJSON) {
       hiddenThreads = loadThreadList('hide-' + catalog.slug);
       pinnedThreads = loadThreadList('pin-' + catalog.slug);
@@ -1184,7 +1179,7 @@ $.fourcat = function() {
   }
   
   // Loads basic settings from localStorage
-  fc.loadSettings = function() {
+  loadSettings = function() {
     var settings;
     if (hasWebStorage && hasNativeJSON
       && (settings = localStorage.getItem('settings'))) {
@@ -1215,7 +1210,7 @@ $.fourcat = function() {
     localStorage.removeItem('settings');
   }
   
-  fc.setSize = function(size, init) {
+  setSize = function(size, init) {
     var cls;
     if (size == 'small') {
       $sizeCtrl.html($sizeCtrl.attr('data-lbl-large'));
@@ -1246,7 +1241,7 @@ $.fourcat = function() {
     }
   }
   
-  fc.setExtended = function(mode, init) {
+  setExtended = function(mode, init) {
     var cls = '';
     if (mode) {
       $teaserCtrl.html($teaserCtrl.attr('data-lbl-hide'));
@@ -1266,7 +1261,7 @@ $.fourcat = function() {
     }
   }
   
-  fc.setProxy = function(mode, init) {
+  setProxy = function(mode, init) {
     if (!catalog.proxy) {
       $proxyCtrl.hide();
       return;
@@ -1281,11 +1276,11 @@ $.fourcat = function() {
     }
     if (!init) {
       saveSettings();
-      fc.buildThreads();
+      buildThreads();
     }
   }
   
-  fc.setOrder = function(order, init) {
+  setOrder = function(order, init) {
     var lbl = document.getElementById('ordered-by');
     if (order == 'date') {
       $orderCtrl.html($orderCtrl.attr('data-lbl-alt'));
@@ -1304,23 +1299,23 @@ $.fourcat = function() {
     }
     if (!init) {
       saveSettings();
-      fc.buildThreads();
+      buildThreads();
     }
   }
   
   function cycleOrder() {
     if (options.orderby == 'date') {
-      fc.setOrder('alt');
+      setOrder('alt');
     }
     else if (options.orderby == 'alt') {
-      fc.setOrder('r');
+      setOrder('r');
     }
     else {
-      fc.setOrder('date');
+      setOrder('date');
     }
   }
   
-  fc.buildThreads = function() {
+  buildThreads = function() {
     var
       tip, i, j, fid, id, entry, thread, af, hl, onTop, pinned, provider,
       rDiff, onPage, filtered = 0, html = '';
@@ -1366,8 +1361,8 @@ $.fourcat = function() {
         else {
           for (fid in activeFilters) {
             af = activeFilters[fid];
-            if ((af.type == 0 && entry.teaser.search(af.pattern) != -1)
-              || (af.type == 1 && entry.author && entry.author.search(af.pattern) != -1)) {
+            if ((af.type == 0 && af.pattern.test(entry.teaser))
+              || (af.type == 1 && af.pattern.test(entry.author))) {
               if (af.hidden) {
                 ++filtered;
                 af.hits += 1;
@@ -1381,7 +1376,7 @@ $.fourcat = function() {
           }
         }
       }
-      else if (entry.teaser.search(quickFilterPattern) == -1) {
+      else if (!quickFilterPattern.test(entry.teaser)) {
         continue;
       }
       thread = '<div id="thread-' + id
@@ -1405,7 +1400,7 @@ $.fourcat = function() {
         + (onTop ? ' / (P)age' : '') + '" id="meta-' + id + '" class="meta">';
       
       if (entry.r) {
-        thread += 'r:<b>' + entry.r + '</b>';
+        thread += 'R:<b>' + entry.r + '</b>';
         if (pinned) {
           rDiff = entry.r - pinnedThreads[id];
           if (rDiff > 0) {
@@ -1417,7 +1412,7 @@ $.fourcat = function() {
           }
         }
         if (entry.i) {
-          thread += ' / i:<b>' + entry.i + '</b>';
+          thread += ' / I:<b>' + entry.i + '</b>';
         }
       }
       
@@ -1425,7 +1420,7 @@ $.fourcat = function() {
         if (entry.r) {
           thread += ' / ';
         }
-        thread += 'p:<b>' + page + '</b>';
+        thread += 'P:<b>' + page + '</b>';
       }
       
       thread += '</div>';
@@ -1495,68 +1490,70 @@ $.fourcat = function() {
       clearInterval(pulseInterval);
       pulseInterval = setInterval(updateTime, 60000);
     }
-    document.getElementById('updated').innerHTML = fc.getDuration(delta, true);
+    document.getElementById('updated').innerHTML = getDuration(delta, true);
   }
   
   // Tipsy tooltip callback
   function tipCb() {
-    var thread = catalog.threads[this.getAttribute('data-id')];
+    var tip, thread;
     
-    return fc.getTip(
-      (thread.author ? thread.author : catalog.anon),
-      thread.date,
-      (!options.extended ? thread.teaser : null)
-    );
-  }
-};
-
-$.fourcat.prototype.getTip = function(author, date, teaser) {
-  var tip = 'Posted by <em>' + author + '</em> ';
-  
-  tip += this.getDuration((new Date().getTime() / 1000) - date) + ' ago';
-  
-  if (teaser) {
-    tip += '<br />' + teaser;
+    thread = catalog.threads[this.getAttribute('data-id')];
+    tip = 'Posted by <em>' + (thread.author ? thread.author : catalog.anon) + '</em> ';
+    tip += getDuration((new Date().getTime() / 1000) - thread.date) + ' ago';
+    
+    if (!options.extended && thread.teaser) {
+      tip += '<br />' + thread.teaser;
+    }
+    
+    return tip;
   }
   
-  return tip;
-};
-
-$.fourcat.prototype.getDuration = function(delta, precise) {
-  var count;
-  if (delta < 2) {
-    return 'less than a second';
-  }
-  if (precise && delta < 300) {
-    return (0 | delta) + ' seconds';
-  }
-  if (delta < 60) {
-    return (0 | delta) + ' seconds';
-  }
-  if (delta < 3600) {
-    count = 0 | (delta / 60);
+  function getDuration(delta, precise) {
+    var count, head, tail;
+    if (delta < 2) {
+      return 'less than a second';
+    }
+    if (precise && delta < 300) {
+      return (0 | delta) + ' seconds';
+    }
+    if (delta < 60) {
+      return (0 | delta) + ' seconds';
+    }
+    if (delta < 3600) {
+      count = 0 | (delta / 60);
+      if (count > 1) {
+        return count + ' minutes';
+      }
+      else {
+        return 'one minute';
+      }
+    }
+    if (delta < 86400) {
+      count = 0 | (delta / 3600);
+      if (count > 1) {
+        head = count + ' hours';
+      }
+      else {
+        head = 'one hour';
+      }
+      tail = 0 | (delta / 60 - count * 60);
+      if (tail > 1) {
+        head += ' and ' + tail + ' minutes';
+      }
+      return head;
+    }
+    count = 0 | (delta / 86400);
     if (count > 1) {
-      return count + ' minutes';
+      head = count + ' days';
     }
     else {
-      return 'one minute';
+      head = 'one day';
     }
-  }
-  if (delta < 86400) {
-    count = 0 | (delta / 3600);
-    if (count > 1) {
-      return count + ' hours';
+    tail = 0 | (delta / 3600 - count * 24);
+    if (tail > 1) {
+      head += ' and ' + tail + ' hours';
     }
-    else {
-      return 'one hour';
-    }
-  }
-  count = 0 | (delta / 86400);
-  if (count > 1) {
-    return count + ' days';
-  }
-  else {
-    return 'one day';
+    return head;
   }
 };
 

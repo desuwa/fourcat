@@ -50,6 +50,7 @@ class Catalog
     :retries          => 2,
     :no_partial       => true,
     :page_count       => [11, 2],
+    :page_size        => 15,
     :refresh_delay    => 60,
     :refresh_range    => [60, 300],
     :refresh_step     => 10,
@@ -166,6 +167,9 @@ class Catalog
   #   the crawler will first fetch 16 pages, then will get the first 2 pages.
   #   This is fine for moderately fast boards, faster boards may need
   #   additional runs in order to avoid missing threads.
+  #
+  # @option opts [Integer] page_size
+  #   Number of treads per page. Defaults to 15
   #
   # @option opts [Numeric] refresh_delay
   #   Base refresh delay in seconds, defaults to 60
@@ -566,6 +570,7 @@ class Catalog
       :anon       => @opts.default_name,
       :mtime      => @mtime.to_i,
       :proxy      => @opts.proxy,
+      :pagesize   => @opts.page_size,
       :server     => "#{@server}#{@board}/"
     }.to_json
     

@@ -51,7 +51,7 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
     <span>Teaser:</span><span data-lbl-show="Show" data-lbl-hide="Hide" id="teaser-ctrl" class="button"></span>
     <span class="sep">|</span>
     <span id="filters-ctrl" class="button">Filters</span>
-    <span id="theme-ctrl" class="button">Theme</span>
+    <span id="theme-ctrl" class="button">Settings</span>
     <span data-tip="Redirect to the archive" id="proxy-ctrl" class="button">Archive</span>
     <span id="qf-ctrl" class="button">Search</span>
     <span style="display:none" id="qf-cnt">
@@ -189,7 +189,7 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
   </ul>
 </div>
 <div id="theme" class="panel">
-<h3>Theme</h3>
+<h3>Settings</h3>
   <h4>Options</h4>
   <ul class="clickset">
     <li><span id="theme-notipsy" class="button clickbox left"></span>&mdash; Disable styled tooltips on thumbnails.</li>
@@ -206,8 +206,8 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
     <li><kbd title="Right Mouse Button">RMB</kbd> &mdash; Threads context menu (Firefox only)</li>
   </ul>
   <!--<h4>Custom Menu</h4>
-  <div>Example: <em>jp tg mu</em></div>
-  <input type="text" id="theme-menu">-->
+  <div>Limit the main menu to the following boards</div>
+  <input placeholder="example: jp tg mu" class="settings-field" type="text" id="theme-menu">-->
   <h4>Stylesheet</h4>
   <select id="theme-ss" size="1">
     <option value="0">Default</option>
