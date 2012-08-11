@@ -1396,6 +1396,11 @@ $.fourcat = function() {
         (catalog.slug + '/src/' + id + '.jpg')
         ) + '" data-id="' + id + '" /></a>';
       
+      if (catalog.flags) {
+        thread += '<div class="flag flag-' + entry.loc + '" title="'
+        + entry.locname + '"></div>';
+      }
+      
       thread += '<div title="(R)eplies / (I)mages'
         + (onTop ? ' / (P)age' : '') + '" id="meta-' + id + '" class="meta">';
       

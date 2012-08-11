@@ -5,10 +5,9 @@
   <title>4chan Catalog - /<%= @opts.slug %>/</title>
   <meta name="description" content="4chan's /<%= @opts.slug %>/ Catalog displays every thread on a single page.">
   <meta name="keywords" content="4chan,/<%= @opts.slug %>/,catalog,catalogue,threads,list,stats,statistics">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <% if @opts.write_rss %>
-  <link rel="alternate" title="4chan Catalog - /<%= @opts.slug %>/" href="/<%= @opts.slug %>/feed.rss" type="application/rss+xml">
-  <% end %>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><% if @opts.write_rss %>
+  <link rel="alternate" title="4chan Catalog - /<%= @opts.slug %>/" href="/<%= @opts.slug %>/feed.rss" type="application/rss+xml"><% end %><% if @opts.country_flags %>
+  <link rel="stylesheet" type="text/css" href="/stylesheets/flags.css"><% end %>
   <link id="base-css" rel="stylesheet" type="text/css" href="/stylesheets/style.css">
   <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
   <script type="text/javascript" src="/javascripts/fourcat-ui.js"></script>

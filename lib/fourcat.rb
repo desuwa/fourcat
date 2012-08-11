@@ -14,7 +14,7 @@ module Fourcat
 
 class Catalog
   
-  VERSION     = '1.2.4'
+  VERSION     = '1.3.0'
   
   TAG_REGEX   = /<[^>]+>/i
   PB_REGEX    = /[\u2028\u2029]/
@@ -45,6 +45,7 @@ class Catalog
     :spoiler_text     => false,
     :remove_exif      => false,
     :remove_oekaki    => false,
+    :country_flags    => false,
     :req_delay        => 1.2,
     :req_timeout      => 10,
     :retries          => 2,
@@ -143,6 +144,9 @@ class Catalog
   #
   # @option opts [true, false] remove_oekaki
   #   Remove Oekaki meta. Defaults to false.
+  #
+  # @option opts [true, false] country_flags
+  #   Display country flags.
   #
   # @option opts [Numeric] req_delay
   #   Delay in seconds between requests, defaults to 1.2
@@ -556,9 +560,15 @@ class Catalog
       }
       threads[id][:teaser] = thread[:teaser] if thread[:teaser]
       threads[id][:author] = thread[:author] if thread[:author]
-      threads[id][:r] = thread[:r] if thread[:r] != 0
-      threads[id][:i] = thread[:i] if thread[:i]
       threads[id][:s] = thread[:s] if thread[:s]
+      if thread[:r] != 0
+        threads[id][:r] = thread[:r]
+        threads[id][:i] = thread[:i] if thread[:i]
+      end
+      if @opts.country_flags
+        threads[id][:loc] = thread[:loc]
+        threads[id][:locname] = thread[:locname]
+      end
     end
     
     json = {
@@ -572,12 +582,14 @@ class Catalog
       :proxy      => @opts.proxy,
       :pagesize   => @opts.page_size,
       :server     => "#{@server}#{@board}/"
-    }.to_json
+    }
+    
+    json[:flags] = true if @opts.country_flags
     
     if @opts.write_json && @opts.write_html
-      @json_cache = json
+      @json_cache = json.to_json
     else
-      json
+      json.to_json
     end
   end
   
@@ -945,6 +957,12 @@ class Catalog
         ".//div[@id='pi#{th[:id]}']/span[contains(@class, 'nameBlock')]"
       )
       if author[0]
+        if (@opts.country_flags &&
+          (flag = author.xpath('.//img[@class="countryFlag"]')[0])
+        )
+          th[:loc] = flag['alt'].downcase
+          th[:locname] = flag['title']
+        end
         author = author[0].text.strip
         author.gsub!(PB_REGEX, '')
         th[:author] = author if author != @opts.default_name
