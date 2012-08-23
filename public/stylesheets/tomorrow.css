@@ -133,8 +133,8 @@ a,
 }
 
 #settings .active {
-  color: #5F89AC;
-  text-decoration: underline;
+  color: #B5BD68;
+  font-weight: bold;
 }
 
 #qf-clear {
