@@ -14,7 +14,7 @@ module Fourcat
 
 class Catalog
   
-  VERSION     = '1.3.0'
+  VERSION     = '1.3.1'
   
   TAG_REGEX   = /<[^>]+>/i
   PB_REGEX    = /[\u2028\u2029]/
@@ -866,7 +866,7 @@ class Catalog
       
       # Title
       if th[:title] = postinfo.xpath("span[@class='subject']")[0]
-        th[:title] = th[:title].text
+        th[:title] = th[:title].inner_html
       else
         @log.warn("Can not find the title for thread #{th[:id]}")
         th[:title] = ''
@@ -904,7 +904,8 @@ class Catalog
               if s.content == ''
                 s.remove
               else
-                s.inner_html = "[spoiler]#{s.inner_html}[/spoiler]"
+                s.inner_html =
+                  "[spoiler]#{s.inner_html.gsub(TAG_REGEX, '')}[/spoiler]"
               end
             end
           end
@@ -963,7 +964,7 @@ class Catalog
           th[:loc] = flag['alt'].downcase
           th[:locname] = flag['title']
         end
-        author = author[0].text.strip
+        author = author[0].text.gsub(TAG_REGEX, '').strip
         author.gsub!(PB_REGEX, '')
         th[:author] = author if author != @opts.default_name
       else
