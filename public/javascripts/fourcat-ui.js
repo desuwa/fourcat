@@ -589,29 +589,24 @@ $.fourcat = function() {
               words = rawPattern.replace(regexOrNorm, '|').split(' ');
               pattern = '';
               wordcount = words.length;
-              if (false) {
-                pattern = new RegExp(wordSepS + inner + wordSepE, 'i');
-              }
-              else {
-                for (w = 0; w < wordcount; ++w) {
-                  if (words[w].indexOf('|') != -1) {
-                    orOp = words[w].split('|');
-                    orCluster = [];
-                    for (v = orOp.length - 1; v >= 0; v--) {
-                      if (orOp[v] != '') {
-                        orCluster.push(orOp[v].replace(regexEscape, '\\$1'));
-                      }
+              for (w = 0; w < wordcount; ++w) {
+                if (words[w].indexOf('|') != -1) {
+                  orOp = words[w].split('|');
+                  orCluster = [];
+                  for (v = orOp.length - 1; v >= 0; v--) {
+                    if (orOp[v] != '') {
+                      orCluster.push(orOp[v].replace(regexEscape, '\\$1'));
                     }
-                    inner = orCluster.join('|').replace(regexWc, replWc);
-                    pattern += wordSepS + '(' + inner + ')' + wordSepE;
                   }
-                  else {
-                    inner = words[w].replace(regexEscape, '\\$1').replace(regexWc, replWc);
-                    pattern += wordSepS + inner + wordSepE;
-                  }
+                  inner = orCluster.join('|').replace(regexWc, replWc);
+                  pattern += wordSepS + '(' + inner + ')' + wordSepE;
                 }
-                pattern = new RegExp('^' + pattern, 'i');
+                else {
+                  inner = words[w].replace(regexEscape, '\\$1').replace(regexWc, replWc);
+                  pattern += wordSepS + inner + wordSepE;
+                }
               }
+              pattern = new RegExp('^' + pattern, 'i');
             }
           }
           //console.log('Resulting regex: ' + pattern);
