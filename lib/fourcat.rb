@@ -964,6 +964,9 @@ class Catalog
           th[:loc] = flag['alt'].downcase
           th[:locname] = flag['title']
         end
+        if userid = author.xpath(".//span[contains(@class, 'posteruid')]")[0]
+          userid.remove
+        end
         author = author[0].text.gsub(TAG_REGEX, '').strip
         author.gsub!(PB_REGEX, '')
         th[:author] = author if author != @opts.default_name
