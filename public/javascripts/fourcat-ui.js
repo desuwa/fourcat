@@ -309,7 +309,7 @@ $.fourcat = function() {
             toggleThreadPin(tid);
             return false;
           }
-          else if (e.shiftKey) {
+          else if (e.which == 1 && e.shiftKey) {
             toggleThreadHide(tid);
             return false;
           }
@@ -862,7 +862,8 @@ $.fourcat = function() {
     
     if ($filtersPanel.css('display') == 'none') {
       var
-        buttons = ['notipsy', 'magnify', 'altKey', 'nobinds', 'usessl'],
+        buttons = ['notipsy', 'magnify', 'altKey', 'nobinds', 'usessl',
+          'nospoiler'],
         ss, field,
         theme = localStorage.getItem('theme');
       
@@ -909,7 +910,8 @@ $.fourcat = function() {
   
   function closeThemeEditor() {    
     var buttons =
-      ['save', 'close', 'notipsy', 'magnify', 'altKey', 'nobinds', 'usessl'];
+      ['save', 'close', 'notipsy', 'magnify', 'altKey', 'nobinds', 'usessl',
+        'nospoiler'];
     
     $('#theme-' + buttons.join(', #theme-')).off('click');
     $themePanel.hide();
@@ -1111,6 +1113,10 @@ $.fourcat = function() {
     if (customTheme.usessl != activeTheme.usessl) {
       setSSL(!!customTheme.usessl);
       buildThreads();
+    }
+    
+    if ($('#theme-nospoiler').hasClass('active')) {
+      customTheme.nospoiler = true;
     }
     
     ss = document.getElementById('theme-ss');
@@ -1386,10 +1392,10 @@ $.fourcat = function() {
         thread += ' pinned';
       }
       thread += '" src="' + options.contentUrl
-      + (entry.s ?
-        ('images/' + entry.s) :
-        (catalog.slug + '/src/' + id + '.jpg')
-        ) + '" data-id="' + id + '" /></a>';
+      + (entry.s ? entry.splr && activeTheme.nospoiler ?
+          (catalog.slug + '/src/' + id + '.jpg') : ('images/' + entry.s)
+        : (catalog.slug + '/src/' + id + '.jpg'))
+      + '" data-id="' + id + '" /></a>';
       
       if (catalog.flags) {
         thread += '<div class="flag flag-' + entry.loc + '" title="'

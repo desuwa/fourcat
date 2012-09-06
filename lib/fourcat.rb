@@ -14,7 +14,7 @@ module Fourcat
 
 class Catalog
   
-  VERSION     = '1.3.1'
+  VERSION     = '1.3.2'
   
   TAG_REGEX   = /<[^>]+>/i
   PB_REGEX    = /[\u2028\u2029]/
@@ -293,6 +293,9 @@ class Catalog
     # For stats tracking and speed adjustment
     @first_run = true
     
+    # Thumbnail server url for spoiler revealing
+    @thumbs_url = "//0.thumbs.4chan.org/#{@opts.slug}/thumb/"
+    
     # Checking for the spoiler file (spoiler-SLUG.png)
     @spoiler_pic =
       if File.exist?(@opts.public_dir + "images/spoiler-#{@opts.slug}.png")
@@ -560,7 +563,10 @@ class Catalog
       }
       threads[id][:teaser] = thread[:teaser] if thread[:teaser]
       threads[id][:author] = thread[:author] if thread[:author]
-      threads[id][:s] = thread[:s] if thread[:s]
+      if thread[:s]
+        threads[id][:s] = thread[:s]
+        threads[id][:splr] = true if thread[:splr]
+      end
       if thread[:r] != 0
         threads[id][:r] = thread[:r]
         threads[id][:i] = thread[:i] if thread[:i]
@@ -729,7 +735,7 @@ class Catalog
       thumblist = {}
       
       threadlist.each do |id, thread|
-        if !thread[:s]
+        if thread[:src]
           thumblist["#{@thumbs_dir}#{id}.jpg".freeze] = [ thread[:src], id ]
         end
       end
@@ -766,6 +772,7 @@ class Catalog
               @log.error get_error(e)
             end
             threadlist[id][:s] = @thumb_404
+            threadlist[id].delete(:src)
           ensure
             active_workers -= 1
           end
@@ -948,6 +955,8 @@ class Catalog
           th[:s] = @thumb_404
         elsif thumb['src'].include?('spoiler')
           th[:s] = @spoiler_pic
+          th[:splr] = true
+          th[:src] = @thumbs_url + thumb.parent['href'][-17, 13] + 's.jpg'
         else
           th[:src] = thumb['src']
         end
