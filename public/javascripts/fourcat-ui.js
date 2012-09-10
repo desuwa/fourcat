@@ -350,7 +350,7 @@ $.fourcat = function() {
       '/imgboard.php?mode=report&no=' + tid,
       Date.now(), 
       'toolbar=0,scrollbars=0,location=0,status=1,menubar=0,resizable=1,' +
-      'width=660,height=192'
+      'width=600,height=170'
     );
   }
   
