@@ -13,15 +13,12 @@ $.fourcat = function() {
     proxy: false,
     // Thumbnails server url
     contentUrl: '/',
-    // Filter complete words
-    filterFullWords: true,
     // Filters color palette
     filterColors: [
       ['#E0B0FF', '#F2F3F4', '#7DF9FF', '#FFFF00'],
       ['#FBCEB1', '#FFBF00', '#ADFF2F', '#0047AB'],
       ['#00A550', '#007FFF', '#AF0A0F', '#B5BD68']
-    ],
-    threadsPerPage: 15
+    ]
   },
   
   keybinds = {
@@ -192,7 +189,7 @@ $.fourcat = function() {
   }
   
   function getThreadPage(tid) {
-    return 0 | (catalog.order.alt.indexOf(tid) / options.threadsPerPage);
+    return 0 | (catalog.order.alt.indexOf(tid) / catalog.pagesize);
   }
   
   // Requires proper expiration headers
@@ -547,7 +544,7 @@ $.fourcat = function() {
   }
   
   // Loads patterns from the localStorage and builds regexps
-  loadFilters = function() {
+  function loadFilters() {
     if (!hasWebStorage) return;
     
     activeFilters = {};
