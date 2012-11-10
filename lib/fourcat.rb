@@ -942,6 +942,8 @@ class Catalog
           th[:body].gsub(/\n+/, ' ')
         end
       
+      th[:teaser].gsub!(PB_REGEX, '')
+      
       th[:body].gsub!("\n", '<br>')
       
       # Thumbnail
