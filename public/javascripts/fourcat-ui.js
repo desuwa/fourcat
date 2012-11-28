@@ -1402,6 +1402,10 @@ $.fourcat = function() {
       thread += '<div title="(R)eplies / (I)mages'
         + (onTop ? ' / (P)age' : '') + '" id="meta-' + id + '" class="meta">';
       
+      if (entry.sticky) {
+        thread += '<span class="sticky" title="Sticky">●</span>';
+      }
+      
       if (entry.r) {
         thread += 'R:<b>' + entry.r + '</b>';
         if (pinned) {

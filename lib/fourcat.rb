@@ -14,7 +14,7 @@ module Fourcat
 
 class Catalog
   
-  VERSION     = '1.3.2'
+  VERSION     = '1.3.3'
   
   TAG_REGEX   = /<[^>]+>/i
   PB_REGEX    = /[\u2028\u2029]/
@@ -563,6 +563,7 @@ class Catalog
       }
       threads[id][:teaser] = thread[:teaser] if thread[:teaser]
       threads[id][:author] = thread[:author] if thread[:author]
+      threads[id][:sticky] = thread[:sticky] if thread[:sticky]
       if thread[:s]
         threads[id][:s] = thread[:s]
         threads[id][:splr] = true if thread[:splr]

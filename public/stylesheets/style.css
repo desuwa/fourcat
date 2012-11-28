@@ -565,6 +565,11 @@ s {
   margin-top: 1px;
 }
 
+.sticky {
+  color: #0000ff;
+  margin-right: 3px;
+}
+
 /* Teaser, hidden */
 .teaser {
   line-height: 14px;
