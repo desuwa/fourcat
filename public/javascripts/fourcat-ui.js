@@ -36,6 +36,7 @@ $.fourcat = function() {
   baseFilter = {
     active: 1,
     pattern: '',
+    boards: '',
     color: '',
     hidden: 0,
     top: 0,
@@ -149,7 +150,6 @@ $.fourcat = function() {
     $.extend(options, defaults, opts);
     
     loadSettings();
-    loadFilters();
     
     bindGlobalShortcuts();
     
@@ -160,6 +160,7 @@ $.fourcat = function() {
   
   fc.loadCatalog = function(c) {
     catalog = c;
+    loadFilters();
     setProxy(options.proxy, true);
     setSSL(activeTheme.usessl);
     loadStorage();
@@ -283,8 +284,7 @@ $.fourcat = function() {
     document.getElementById('ctxmenu-thread').innerHTML = 
       '<menuitem label="Pin/Unpin" data-cmd="pin"' + icon + '></menuitem>' +
       '<menuitem label="Hide" data-cmd="hide"' + icon + '></menuitem>' +
-      '<menuitem label="Report" data-cmd="report"' + icon + '></menuitem>' +
-      '<menuitem label="Unpin all" data-cmd="clearpin"' + icon + '></menuitem>';
+      '<menuitem label="Report" data-cmd="report"' + icon + '></menuitem>';
     
     $('#ctxmenu-main').click(clearPinnedThreads);
     $('#ctxmenu-thread').click(onThreadContextClick);
@@ -555,7 +555,7 @@ $.fourcat = function() {
     rawFilters = $.parseJSON(rawFilters);
     
     var
-      fid, v, w, wordcount,
+      rf, fid, v, w, wordcount,
       wordSepS, wordSepE, orJoin,
       regexType = /^\/(.*)\/(i?)$/,
       regexOrNorm = /\s*\|+\s*/g,
@@ -568,9 +568,13 @@ $.fourcat = function() {
     
     try {
       for (fid in rawFilters) {
-        if (rawFilters[fid].active && rawFilters[fid].pattern != '') {
-          rawPattern = rawFilters[fid].pattern;
-          if (rawPattern[0] == '#') {
+        rf = rawFilters[fid];
+        if (rf.active && rf.pattern != '') {
+          if (rf.boards && rf.boards.split(' ').indexOf(catalog.slug) == -1) {
+            continue;
+          }
+          rawPattern = rf.pattern;
+          if (rawPattern.charAt(0) == '#') {
             type = 1;
             pattern = new RegExp(rawPattern.slice(1).replace(regexEscape, '\\$1'));
           }
@@ -579,7 +583,7 @@ $.fourcat = function() {
             if (match = rawPattern.match(regexType)) {
               pattern = new RegExp(match[1], match[2]);
             }
-            else if (rawPattern[0] == '"' && rawPattern[rawPattern.length - 1] == '"') {
+            else if (rawPattern.charAt(0) == '"' && rawPattern.charAt(rawPattern.length - 1) == '"') {
               pattern = new RegExp(rawPattern.slice(1, -1).replace(regexEscape, '\\$1'));
             }
             else {
@@ -610,11 +614,12 @@ $.fourcat = function() {
           activeFilters[fid] = {
             type: type,
             pattern: pattern,
+            boards: rf.boards,
             fid: fid,
-            hidden: rawFilters[fid].hidden,
-            color: rawFilters[fid].color,
-            bright: rawFilters[fid].bright,
-            top: rawFilters[fid].top,
+            hidden: rf.hidden,
+            color: rf.color,
+            bright: rf.bright,
+            top: rf.top,
             hits: 0
           };
         }
@@ -622,25 +627,25 @@ $.fourcat = function() {
     }
     catch (err) {
       alert('There was an error processing one of the filters: '
-        + err + ' in: ' + rawPattern);
+        + err + ' in: ' + rf.pattern);
     }
   }
   
   function saveFilters() {
-    var rawFilters = {}, $msg = $('#filters-msg');
+    var rawFilters = {}, $msg = $('#filters-msg'), cols, color, f;
     
     $filterList.children('tr').each(function(i, e) {
-      var
-        $cols = $(e).children('td'),
-        $color = $($cols[2]).children('span'),
-        f = {
-          active: parseInt($($cols[0]).children('span').attr('data-active')),
-          pattern: $($cols[1]).children('input').val(),
-          hidden: parseInt($($cols[3]).children('span').attr('data-hide')),
-          top: parseInt($($cols[4]).children('span').attr('data-top'))
-        };
-      if ($color.attr('data-nocolor') === undefined) {
-        f.color = $color.css('background-color');
+      cols = e.children;
+      f = {
+        active: +(cols[0].firstElementChild.getAttribute('data-active')),
+        pattern:  cols[1].firstElementChild.value,
+        boards:   cols[2].firstElementChild.value,
+        hidden: +(cols[4].firstElementChild.getAttribute('data-hide')),
+        top:    +(cols[5].firstElementChild.getAttribute('data-top'))
+      };
+      color = cols[3].firstElementChild;
+      if (!color.hasAttribute('data-nocolor')) {
+        f.color = color.style.backgroundColor;
         if (getColorBrightness(f.color) > 125) {
           f.bright = true;
         }
@@ -648,7 +653,7 @@ $.fourcat = function() {
       rawFilters[i] = f;
     });
     
-    if (rawFilters['0']) {
+    if (rawFilters[0]) {
       localStorage.setItem('filters', JSON.stringify(rawFilters));
     }
     else {
@@ -701,6 +706,16 @@ $.fourcat = function() {
     input = document.createElement('input');
     input.type = 'text';
     input.value = filter.pattern;
+    input.className = 'filter-pattern';
+    td.appendChild(input);
+    tr.appendChild(td);
+    
+    // Boards
+    td = document.createElement('td');
+    input = document.createElement('input');
+    input.type = 'text';
+    input.value = filter.boards || '';
+    input.className = 'filter-boards';
     td.appendChild(input);
     tr.appendChild(td);
     
@@ -1505,11 +1520,11 @@ $.fourcat = function() {
     var tip, thread;
     
     thread = catalog.threads[this.getAttribute('data-id')];
-    tip = 'Posted by <em>' + (thread.author ? thread.author : catalog.anon) + '</em> ';
+    tip = 'Posted by <b>' + (thread.author ? thread.author : catalog.anon) + '</b> ';
     tip += getDuration((new Date().getTime() / 1000) - thread.date) + ' ago';
     
     if (!options.extended && thread.teaser) {
-      tip += '<br />' + thread.teaser;
+      tip += '<p>' + thread.teaser + '</p>';
     }
     
     return tip;

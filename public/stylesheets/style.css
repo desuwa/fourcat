@@ -414,8 +414,12 @@ s {
   float: right;
 }
 
-#filter-list input {
-  width: 190px;
+#filter-list .filter-pattern {
+  width: 140px;
+}
+
+#filter-list .filter-boards {
+  width: 40px;
 }
 
 #filter-table {
@@ -739,4 +743,5 @@ s {
   .tipsy-e .tipsy-arrow { right: 0; border-right: none; }
   .tipsy-w .tipsy-arrow { left: 0; border-left: none; }
   
-.tipsy em { font-weight: bold; }
+.tipsy b { color: #00A550; }
+.tipsy p { margin: 5px 0 0; padding: 0; }

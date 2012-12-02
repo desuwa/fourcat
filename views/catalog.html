@@ -73,6 +73,7 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
       <tr>
         <th>On</th>
         <th>Pattern</th>
+        <th>Boards</th>
         <th>Color</th>
         <th>Hide</th>
         <th>Top</th>
@@ -84,7 +85,7 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
     </tbody>
     <tfoot>
       <tr>
-        <td colspan="7">
+        <td colspan="8">
           <span id="filters-add" class="button left">Add</span>
           <span class="right">
             <span id="filters-msg"></span>
