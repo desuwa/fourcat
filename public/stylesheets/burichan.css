@@ -1,7 +1,11 @@
 body {
   font-family: Times, 'Times New Roman', serif;
   background-color: #EEF2FF;
-  font-size: 12pt;
+  font-size: 15px;
+}
+
+input {
+  border-radius: 0;
 }
 
 code {
@@ -12,14 +16,16 @@ code {
   color: #34345C;
   box-shadow: none;
   background: none;
-  text-decoration: underline;
-  padding: 2px 0;
   border-radius: 0;
 }
 
 .button:hover {
   background: none;
   color: #dd0000;
+}
+
+#topnav .button {
+  padding: 1px;
 }
 
 #threads {
@@ -30,6 +36,26 @@ code {
   background-color: #D6DAF0;
   margin: 5px;
   padding: 8px 0 10px 0;
+}
+
+/* Thread in compact mode */
+.small .thread {
+  height: 160px;
+}
+
+/* Thread in large mode */
+.large .thread {
+  height: 260px;
+}
+
+/* Thread in compact mode with teaser displayed */
+.extended-small .thread {
+  max-height: 350px;
+}
+
+/* Thread in large mode with teaser displayed */
+.extended-large .thread {
+  max-height: 460px;
 }
 
 .teaser {
@@ -83,7 +109,6 @@ code {
 }
 
 .clickbox {
-  padding: 2px 4px;
   background-color: #EEF2FF;
   text-decoration: none;
 }
@@ -92,8 +117,16 @@ code {
   background-color: #EEF2FF;
 }
 
-.tipsy {
-  font-size: 12pt;
+#tooltip {
+  font-size: 14px;
+}
+
+.post-reply {
+  font-size: 13px;
+}
+
+.post-notext {
+  font-size: 12px;
 }
 
 #title {
@@ -107,12 +140,6 @@ code {
 #ctrl,
 #totop {
   border: none;
-}
-
-#order-ctrl,
-#size-ctrl,
-#teaser-ctrl {
-  margin-left: 3px;
 }
 
 #settings .active {

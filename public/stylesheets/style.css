@@ -86,6 +86,7 @@ s {
   cursor: pointer;
   -moz-user-select: none;
   -webkit-user-select: none;
+  -ms-user-select: none;
   user-select: none;
   border: none;
   margin: 0px 1px;
@@ -96,14 +97,6 @@ s {
   background-image: -webkit-linear-gradient(top, #636363, #525252);
   background-image: -o-linear-gradient(top, #636363, #525252);
   white-space: nowrap;
-}
-
-.button:hover {
-  color: #000;
-  background-color: #FFA500;
-  background-image: -moz-linear-gradient(center top, #ffa500, #e89700);
-  background-image: -webkit-linear-gradient(top, #ffa500, #e89700);
-  background-image: -o-linear-gradient(top, #ffa500, #e89700);
 }
 
 .button:focus {
@@ -119,6 +112,7 @@ s {
 }
 
 /* Active clickables */
+.button:hover,
 .active {
   color: #000;
   background-color: #FFA500;
@@ -198,16 +192,16 @@ s {
 }
 
 /* Containers */
-#header,
+header,
 #content,
-#footer {
+footer {
   padding-left: 15px;
   padding-right: 15px;
 }
 
 /***************************************************************/
 /* Container for the title and the navigation menu */
-#header {
+header {
   text-align: center;
   padding-top: 5px;
 }
@@ -217,6 +211,12 @@ s {
   font-size: 38px;
   font-weight: bold;
   word-wrap: break-word;
+}
+
+@media all and (max-width: 480px) {
+  #title {
+    font-size: 16px;
+  }
 }
 
 /* Info bar: update time, order, etc on the left */
@@ -232,7 +232,10 @@ s {
 
 #settings {
   float: right;
-  text-align: right; /* sup Chrome */
+}
+
+.lbl {
+  margin: 0 2px;
 }
 
 /* Wrapper for the bars mentioned above */
@@ -241,6 +244,26 @@ s {
   padding-bottom: 10px;
   line-height: 20px;
   border-bottom: 1px dotted #555;
+}
+
+#order-cnt {
+  display: inline-block;
+  position: relative;
+}
+
+#order-list {
+  padding-bottom: 3px;
+  bottom: 20px;
+  position: absolute;
+  display: none;
+  white-space: nowrap;
+}
+
+.order-date #order-date,
+.order-alt #order-alt,
+.order-r #order-r,
+.order-lr #order-lr {
+  display: none;
 }
 
 #filtered-count,
@@ -313,6 +336,14 @@ s {
   font-size: 20px;
 }
 
+@media all and (max-width: 480px) {
+  #ctrl .button,
+  #topnav .button {
+    padding: 6px;
+    line-height: 30px;
+  }
+}
+
 /***************************************************************/
 
 /* Theme editor panel */
@@ -331,7 +362,7 @@ s {
 }
 
 .settings-field {
-  margin-top: 5px;
+  margin: 5px 0 0 0;
   width: 100%;
 }
 
@@ -475,7 +506,6 @@ s {
 /* Threads main container */
 #threads {
   margin-top: 15px;
-  padding: 20px 0px;
   text-align: center;
 }
 
@@ -485,7 +515,7 @@ s {
   display: inline-block;
   word-wrap: break-word;
   overflow: hidden;
-  margin-top: 5px;
+  margin-bottom: 10px;
   padding: 5px 0 3px 0;
 }
 
@@ -518,7 +548,7 @@ s {
 /* Thread in large mode with teaser displayed */
 .extended-large .thread {
   width: 270px;
-  max-height: 400px;
+  max-height: 390px;
 }
 
 /* Thumbnail */
@@ -578,7 +608,7 @@ s {
 .teaser {
   line-height: 14px;
   margin-top: 2px;
-  padding: 0 2px;
+  padding: 0 5px;
   display: none;
 }
 
@@ -604,7 +634,7 @@ s {
 /***************************************************************/
 
 /* Footer */
-#footer {
+footer {
   text-align: center;
   font-size: 11px;
   padding-bottom: 5px;
@@ -717,31 +747,32 @@ s {
 /***************************************************************/
 
 /* Tooltips */ 
-.tipsy { font-size: 12px; position: absolute; padding: 5px; z-index: 100000; }
-  .tipsy-inner { padding: 5px 8px 4px 8px; background-color: black; color: #E5E4E2; max-width: 400px; text-align: left; word-wrap: break-word; }
+#tooltip {
+  position: absolute;
+  background-color: #181f24;
+  border-radius: 3px;
+  font-size: 12px;
+  padding: 5px 8px 4px 8px;
+  z-index: 100000;
+  word-wrap: break-word;
+  max-width: 500px;
+  color: #f5f5f5;
+}
 
-  /* Rounded corners */
-  .tipsy-inner { border-radius: 3px; }
-  
-  /* Uncomment for shadow */
-  /*.tipsy-inner { -webkit-box-shadow: 0px 0px 5px #000000; -moz-box-shadow: 0px 0px 5px #000000; box-shadow: 0px 0px 5px #000000; }*/
-  
-  .tipsy-arrow { position: absolute; width: 0; height: 0; border: 5px solid transparent; }
-  
-  /* Rules to colour arrows */
-  .tipsy-arrow-n { border-bottom-color: #000; }
-  .tipsy-arrow-s { border-top-color: #000; }
-  .tipsy-arrow-e { border-left-color: #000; }
-  .tipsy-arrow-w { border-right-color: #000; }
-  
-  .tipsy-n .tipsy-arrow, .tipsy-nw .tipsy-arrow, .tipsy-ne .tipsy-arrow { top: 0; border-top: none; }
-  .tipsy-s .tipsy-arrow, .tipsy-sw .tipsy-arrow, .tipsy-se .tipsy-arrow { bottom: 0; border-bottom: none; }
-  .tipsy-n .tipsy-arrow, .tipsy-s .tipsy-arrow { left: 50%; margin-left: -5px; }
-  .tipsy-nw .tipsy-arrow, .tipsy-sw .tipsy-arrow { left: 10px; }
-  .tipsy-ne .tipsy-arrow, .tipsy-se .tipsy-arrow { right: 10px; }
-  .tipsy-e .tipsy-arrow, .tipsy-w .tipsy-arrow { top: 50%; margin-top: -5px; }
-  .tipsy-e .tipsy-arrow { right: 0; border-right: none; }
-  .tipsy-w .tipsy-arrow { left: 0; border-left: none; }
-  
-.tipsy b { color: #00A550; }
-.tipsy p { margin: 5px 0 0; padding: 0; }
+.post-author { color: #00A550; font-weight: bold; }
+
+.post-teaser { margin: 3px 0 0; padding: 0; color: #bbbfbd; }
+
+.post-page {
+  font-size: 11px;
+  color: #7d807e;
+}
+
+.post-reply {
+  font-size: 11px;
+  border: none;
+  border-top: 1px dotted #555;
+  margin-top: 3px;
+  padding-top: 2px;
+  color: #bbbfbd;
+}

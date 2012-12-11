@@ -8,7 +8,7 @@ defaults: {
 boards: {
   a: {
     title: '/a/ - Animu & Mango',
-    page_count: [ 16, 3, 1 ],
+    page_count: [ 11, 2, 1 ],
   },
   
   jp: {

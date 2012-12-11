@@ -35,13 +35,16 @@ select {
   color: #007FFF;
   box-shadow: none;
   background: none;
-  padding: 2px 1px;
   border-radius: 0;
 }
 
 .button:hover {
   background: none;
   color: #C41E3A;
+}
+
+#topnav .button {
+  padding: 2px;
 }
 
 .extended-small .thread {
@@ -101,7 +104,6 @@ select {
 }
 
 .panel .button {
-  padding: 2px 4px;
   border-radius: 5px 5px 5px 5px;
 }
 
@@ -117,28 +119,9 @@ select {
   color: #fff;
 }
 
-.tipsy {
-  font-size: 15px;
-}
-
-.tipsy-inner {
-  background-color: #232c33;
-}
-
-.tipsy-arrow-n { border-bottom-color: #232c33; }
-.tipsy-arrow-s { border-top-color: #232c33; }
-.tipsy-arrow-e { border-left-color: #232c33; }
-.tipsy-arrow-w { border-right-color: #232c33; }
-
 #ctrl,
 #totop {
   border-bottom: 2px dashed #ccc;
-}
-
-#order-ctrl,
-#size-ctrl,
-#teaser-ctrl {
-  margin-left: 3px;
 }
 
 #settings .active {
@@ -154,6 +137,15 @@ select {
   border: 1px solid #EEE;
 }
 
+#tooltip,
 #footer {
-  font-size: 14px;
+  font-size: 15px;
+}
+
+.post-reply {
+  font-size: 13px;
+}
+
+.post-notext {
+  font-size: 12px;
 }

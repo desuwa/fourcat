@@ -4,7 +4,6 @@
 ## System requirements
 - Ruby 1.9.2 or higher.
 - Gems
-  - `htmlentities`
   - `daemons` if you want to use the provided daemonizer.
   - `erubis` for html output.
   - `nokogiri` with libxml 2.7.7 or higher.
@@ -31,7 +30,7 @@ Some basic options:
 
 > **Symbol**: `page_count`  
   **Type**: Array of Integers  
-  **Default**: `[ 16, 2 ]`
+  **Default**: `[ 11, 2 ]`
 
 Maximum number of pages to fetch per run during a refresh cycle.  
 By default, the crawler will fetch the first 16 pages during the first run, then 2 pages during the second run.  

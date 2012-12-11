@@ -18,7 +18,9 @@ $.fourcat = function() {
       ['#E0B0FF', '#F2F3F4', '#7DF9FF', '#FFFF00'],
       ['#FBCEB1', '#FFBF00', '#ADFF2F', '#0047AB'],
       ['#00A550', '#007FFF', '#AF0A0F', '#B5BD68']
-    ]
+    ],
+    server: 'http://boards.4chan.org/',
+    tooltipDelay: 350
   },
   
   keybinds = {
@@ -33,28 +35,13 @@ $.fourcat = function() {
   
   basicSettings = [ 'orderby', 'thsize', 'extended', 'proxy' ],
   
-  baseFilter = {
-    active: 1,
-    pattern: '',
-    boards: '',
-    color: '',
-    hidden: 0,
-    top: 0,
-    hits: 0
-  },
+  tooltipTimeout = null,
+  hasTooltip = false,
+  expandedThumbnail = null,
   
   activeTheme = {},
   
   activeFilters = {},
-  
-  // Tooltip options
-  tipopts = {
-    id: 'th-tip',
-    title: tipCb,
-    html: true,
-    gravity: $.fn.tipsy.autoWE,
-    delayIn: 350
-  },
   
   pinnedThreads = {},
   
@@ -83,7 +70,6 @@ $.fourcat = function() {
   $proxyCtrl,
   $teaserCtrl,
   $sizeCtrl,
-  $orderCtrl,
   $themePanel,
   $hiddenCount,
   $hiddenLabel,
@@ -109,12 +95,11 @@ $.fourcat = function() {
     applyTheme(activeTheme, true);
     
     $threads = $('#threads');
-    $refresh = $('#refresh').tipsy({ gravity: 'sw' });
+    $refresh = $('#refresh');
     $qfCtrl = $('#qf-ctrl').click(toggleQuickfilter);
-    $proxyCtrl = $('#proxy-ctrl').tipsy({ gravity: 'se' });
+    $proxyCtrl = $('#proxy-ctrl');
     $teaserCtrl = $('#teaser-ctrl');
     $sizeCtrl = $('#size-ctrl');
-    $orderCtrl = $('#order-ctrl');
     $themePanel = $('#theme');
     $hiddenCount = $('#hidden-count');
     $hiddenLabel = $('#hidden-label');
@@ -129,6 +114,11 @@ $.fourcat = function() {
     $('#theme-ctrl').click(showThemeEditor);
     $('#filters-ctrl').click(showFilters);
     
+    $(document).on('mouseover', onMouseOver);
+    $(document).on('mouseout', onMouseOut);
+    
+    $('#totop').find('.button').click(function() { window.scrollTo(0, 0); });
+    
     if (hasContextMenu) {
       buildContextMenu();
     }
@@ -137,7 +127,11 @@ $.fourcat = function() {
       setSize(options.thsize == 'small' ? 'large' : 'small');
     });
     
-    $orderCtrl.click(cycleOrder);
+    $('#order-ctrl').click(cycleOrder);
+    $('#order-cnt')
+      .on('click', onOrderListClick)
+      .on('mouseover', showOrderMenu)
+      .on('mouseout', hideOrderMenu);
     
     $teaserCtrl.click(function() {
       setExtended(!options.extended);
@@ -156,6 +150,167 @@ $.fourcat = function() {
     setSize(options.thsize, true);
     setOrder(options.orderby, true);
     setExtended(options.extended, true);
+  }
+  
+  function showOrderMenu() {
+    document.getElementById('order-list').style.display = 'block';
+  }
+  
+  function hideOrderMenu() {
+    document.getElementById('order-list').style.display = 'none';
+  }
+  
+  function onOrderListClick(e) {
+    var order;
+    if (order = e.target.getAttribute('data-order')) {
+      hideOrderMenu();
+      setOrder(order);
+    }
+  }
+  
+  function onMouseOver(e) {
+    var t = e.target;
+    
+    if (tooltipTimeout) {
+      clearTimeout(tooltipTimeout);
+      tooltipTimeout = null;
+    }
+    if (hasTooltip) {
+      hideTooltip();
+    }
+    if ($(t).hasClass('thumb')) {
+      if (activeTheme.magnify && options.thsize == 'small') {
+        expandThumbnail(t);
+      }
+      tooltipTimeout = setTimeout(showPostPreview, options.tooltipDelay, t);
+    }
+    else if (t.hasAttribute('data-tip')) {
+      showTooltip(t);
+    }
+  }
+  
+  function onMouseOut(e) {
+    if (expandedThumbnail) {
+      collapseThumbnail(expandedThumbnail);
+    }
+  }
+  
+  function expandThumbnail(t) {
+    var
+      $this = $(t),
+      oldWidth = t.offsetWidth,
+      oldHeight = t.offsetHeight,
+      newWidth, newHeight;
+    
+    $this.clone().insertAfter($this);
+    
+    expandedThumbnail = $this[0];
+    
+    $this.addClass('scaled');
+    
+    newWidth = t.offsetWidth;
+    newHeight = t.offsetHeight;
+    
+    offsetX = (-(newWidth - oldWidth) / 2);
+    offsetY = -(newHeight - oldHeight) / 2;
+    
+    t.style.marginLeft = offsetX + 'px';
+    t.style.marginTop = offsetY + 'px';
+  }
+  
+  function collapseThumbnail(t) {
+    var $this = $(t);
+    expandedThumbnail = null;
+    $this.next().remove();
+    
+    $this.removeClass('scaled');
+    t.style.marginLeft = '';
+    t.style.marginTop = '';
+  }
+  
+  function showTooltip(t) {
+    var el, rect, style, left;
+    
+    rect = t.getBoundingClientRect();
+    
+    el = document.createElement('div');
+    el.id = 'tooltip';
+    el.textContent = t.getAttribute('data-tip');
+    
+    document.body.appendChild(el);
+    
+    left = rect.left - (el.offsetWidth - t.offsetWidth) / 2;
+    
+    if (left < 0) {
+      left = rect.left;
+    }
+    else if (left + el.offsetWidth > document.documentElement.clientWidth) {
+      left = rect.left - el.offsetWidth + t.offsetWidth;
+    }
+    
+    style = el.style;
+    style.top = (rect.top - el.offsetHeight + window.pageYOffset - 5) + 'px';
+    style.left = left + window.pageXOffset + 'px';
+    
+    hasTooltip = true;
+  }
+  
+  function showPostPreview(t) {
+    var i, tid, reply, tip, now, pos, el, rect, docWidth, style, page;
+    
+    thread = catalog.threads[tid = t.getAttribute('data-id')];
+    
+    now = new Date().getTime() / 1000;
+    
+    tip = '<div class="post-op"><span class="post-label">Posted by </span>'
+      + '<span class="post-author">'
+      + (thread.author || catalog.anon) + ' </span>'
+      + '<span class="post-ago">'
+      + getDuration(now - thread.date)
+      + ' ago </span>'
+      + ((page = getThreadPage(+tid)) > 0 ? ('<span class="post-page"> (page '
+      + page + ')</span>') : '') + '</div>';
+    
+    if (!options.extended && thread.teaser) {
+      tip += '<p class="post-teaser">' + thread.teaser + '</p>';
+    }
+    
+    if (reply = thread.lr) {
+      tip += '<div class="post-reply">'
+        + '<span class="post-label">Last reply by </span>'
+        + '<span class="post-author">'
+        + (reply.author || catalog.anon) + ' </span>'
+        + '<span class="post-ago">'
+        + getDuration(now - reply.date)
+        + ' ago </span></div>';
+    }
+    
+    el = document.createElement('div');
+    el.id = 'tooltip';
+    el.className = 'post-preview';
+    el.innerHTML = tip;
+    document.body.appendChild(el);
+    style = el.style;
+    
+    rect = t.getBoundingClientRect();
+    docWidth = document.documentElement.offsetWidth;
+    
+    if ((docWidth - rect.right) < (0 | (docWidth * 0.3))) {
+      pos = rect.left - el.offsetWidth - 5;
+    }
+    else {
+      pos = rect.left + rect.width + 5;
+    }
+    
+    style.left = pos + window.pageXOffset + 'px';
+    style.top = rect.top + window.pageYOffset + 'px';
+    
+    hasTooltip = true;
+  }
+  
+  function hideTooltip() {
+    document.body.removeChild(document.getElementById('tooltip'));
+    hasTooltip = false;
   }
   
   fc.loadCatalog = function(c) {
@@ -177,10 +332,10 @@ $.fourcat = function() {
       return;
     }
     if (val) {
-      catalog.server = catalog.server.replace(/^http:/, 'https:');
+      options.server = options.server.replace(/^http:/, 'https:');
     }
     else {
-      catalog.server = catalog.server.replace(/^https:/, 'http:');
+      options.server = options.server.replace(/^https:/, 'http:');
     }
   }
   
@@ -301,8 +456,7 @@ $.fourcat = function() {
             $threads[0].setAttribute('contextmenu', 'ctxmenu-thread');
             document.getElementById('ctxmenu-thread').target = tid;
           }
-          else if ((e.altKey && !activeTheme.altKey)
-            || (e.ctrlKey && activeTheme.altKey)) {
+          else if (e.which == 1 && e.altKey) {
             toggleThreadPin(tid);
             return false;
           }
@@ -416,36 +570,6 @@ $.fourcat = function() {
     }
   }
   
-  function onThumbMouseIn() {
-    var
-      $this = $(this),
-      oldWidth = this.offsetWidth,
-      oldHeight = this.offsetHeight,
-      newWidth, newHeight;
-    
-    $this.clone().insertAfter($this);
-    
-    $this.addClass('scaled');
-    
-    newWidth = this.offsetWidth;
-    newHeight = this.offsetHeight;
-    
-    offsetX = (-(newWidth - oldWidth) / 2);
-    offsetY = -(newHeight - oldHeight) / 2;
-    
-    this.style.marginLeft = offsetX + 'px';
-    this.style.marginTop = offsetY + 'px';
-  }
-  
-  function onThumbMouseOut() {
-    var $this = $(this);
-    $this.next().remove();
-    
-    $this.removeClass('scaled');
-    this.style.marginLeft = '';
-    this.style.marginTop = '';
-  }
-  
   // Generate the color palette for the filters
   function buildFilterPalette() {
     var
@@ -518,7 +642,7 @@ $.fourcat = function() {
       
       var rawFilters = localStorage.getItem('filters'), filterId = 0;
       if (rawFilters) {
-        rawFilters = $.parseJSON(rawFilters);
+        rawFilters = JSON.parse(rawFilters);
         for (var i in rawFilters) {
           $filterList.append(buildFilter(rawFilters[i], filterId));
           ++filterId;
@@ -552,7 +676,7 @@ $.fourcat = function() {
     var rawFilters = localStorage.getItem('filters');
     if (!rawFilters) return;
     
-    rawFilters = $.parseJSON(rawFilters);
+    rawFilters = JSON.parse(rawFilters);
     
     var
       rf, fid, v, w, wordcount,
@@ -815,6 +939,15 @@ $.fourcat = function() {
   }
   
   function addEmptyFilter() {
+    var baseFilter = {
+      active: 1,
+      pattern: '',
+      boards: '',
+      color: '',
+      hidden: 0,
+      top: 0,
+      hits: 0
+    };
     $filterList[0].appendChild(buildFilter(baseFilter, getNextFilterId()));
   }
   
@@ -857,6 +990,8 @@ $.fourcat = function() {
   }
   
   function showThemeEditor() {
+    var buttons, ss, field, theme;
+    
     if (!hasWebStorage) {
       alert("Your browser doesn't support Local Storage");
       return;
@@ -873,12 +1008,9 @@ $.fourcat = function() {
     }
     
     if ($filtersPanel.css('display') == 'none') {
-      var
-        buttons = ['notipsy', 'magnify', 'altKey', 'nobinds', 'usessl',
-          'nospoiler'],
-        ss, field,
-        theme = localStorage.getItem('theme');
+      buttons = ['magnify', 'nobinds', 'usessl', 'nospoiler'];
       
+      theme = localStorage.getItem('theme');
       theme = theme ? JSON.parse(theme) : {};
       
       for (var i = buttons.length - 1; i >= 0; i--) {
@@ -922,8 +1054,7 @@ $.fourcat = function() {
   
   function closeThemeEditor() {    
     var buttons =
-      ['save', 'close', 'notipsy', 'magnify', 'altKey', 'nobinds', 'usessl',
-        'nospoiler'];
+      ['save', 'close', 'magnify', 'nobinds', 'usessl', 'nospoiler'];
     
     $('#theme-' + buttons.join(', #theme-')).off('click');
     $themePanel.hide();
@@ -960,7 +1091,7 @@ $.fourcat = function() {
     
     if (!customTheme) return;
     
-    activeTheme = $.parseJSON(customTheme);
+    activeTheme = JSON.parse(customTheme);
   }
   
   function applyTheme(customTheme, nocss) {
@@ -1004,35 +1135,6 @@ $.fourcat = function() {
     }
     else if (customTheme.menu != activeTheme.menu) {
       resetCustomMenu();
-    }
-    
-    if (customTheme.notipsy) {
-      if (customTheme.notipsy != activeTheme.notipsy) {
-        $thumbs
-          .off('mouseenter.tipsy')
-          .off('mouseleave.tipsy');
-      }
-    }
-    else {
-      if (customTheme.notipsy != activeTheme.notipsy ) {
-        $thumbs.tipsy(tipopts);
-      }
-    }
-    
-    if (customTheme.magnify) {
-      if (activeTheme.magnify != customTheme.magnify
-          && options.thsize == 'small') {
-        $thumbs
-          .on('mouseenter.scale', onThumbMouseIn)
-          .on('mouseleave.scale', onThumbMouseOut);
-      }
-    }
-    else {
-      if (activeTheme.magnify != customTheme.magnify) {
-        $thumbs
-          .off('mouseenter.scale')
-          .off('mouseleave.scale');
-      }
     }
     
     if (customTheme.nobinds) {
@@ -1103,16 +1205,8 @@ $.fourcat = function() {
   function saveTheme() {
     var ss, field, css, style, customTheme = {};
     
-    if ($('#theme-notipsy').hasClass('active')) {
-      customTheme.notipsy = true;
-    }
-    
     if ($('#theme-magnify').hasClass('active')) {
       customTheme.magnify = true;
-    }
-    
-    if ($('#theme-altKey').hasClass('active')) {
-      customTheme.altKey = true;
     }
     
     if ($('#theme-nobinds').hasClass('active')) {
@@ -1223,26 +1317,16 @@ $.fourcat = function() {
     localStorage.removeItem('settings');
   }
   
-  setSize = function(size, init) {
+  function setSize(size, init) {
     var cls;
     if (size == 'small') {
       $sizeCtrl.html($sizeCtrl.attr('data-lbl-large'));
       cls = 'small';
-      if ($thumbs && activeTheme.magnify) {
-        $thumbs
-          .on('mouseenter.scale', onThumbMouseIn)
-          .on('mouseleave.scale', onThumbMouseOut);
-      }
       options.thsize = 'small';
     }
     else {
       $sizeCtrl.html($sizeCtrl.attr('data-lbl-small'));
       cls = 'large';
-      if ($thumbs && activeTheme.magnify) {
-        $thumbs
-          .off('mouseenter.scale')
-          .off('mouseleave.scale');
-      }
       options.thsize = 'large';
     }
     if (options.extended) {
@@ -1254,17 +1338,15 @@ $.fourcat = function() {
     }
   }
   
-  setExtended = function(mode, init) {
+  function setExtended(mode, init) {
     var cls = '';
     if (mode) {
       $teaserCtrl.html($teaserCtrl.attr('data-lbl-hide'));
-      $('.teaser').css('display', 'block');
       cls = 'extended-';
       options.extended = true;
     }
     else {
       $teaserCtrl.html($teaserCtrl.attr('data-lbl-show'));
-      $('.teaser').css('display', 'none');
       options.extended = false;
     }
     cls += options.thsize;
@@ -1274,7 +1356,7 @@ $.fourcat = function() {
     }
   }
   
-  setProxy = function(mode, init) {
+  function setProxy(mode, init) {
     if (!catalog.proxy) {
       $proxyCtrl.hide();
       return;
@@ -1293,22 +1375,13 @@ $.fourcat = function() {
     }
   }
   
-  setOrder = function(order, init) {
-    var lbl = document.getElementById('ordered-by');
-    if (order == 'date') {
-      $orderCtrl.html($orderCtrl.attr('data-lbl-alt'));
-      lbl.innerHTML = 'creation date';
-      options.orderby = 'date';
-    }
-    else if (order == 'alt') {
-      $orderCtrl.html($orderCtrl.attr('data-lbl-r'));
-      lbl.innerHTML = 'bump date';
-      options.orderby = 'alt';
-    }
-    else {
-      $orderCtrl.html($orderCtrl.attr('data-lbl-date'));
-      lbl.innerHTML = 'reply count';
-      options.orderby = 'r';
+  function setOrder(order, init) {
+    var el, sel;
+    
+    if (el = document.getElementById(sel = 'order-' + order)) {
+      document.getElementById('order-cnt').className = sel;
+      document.getElementById('order-ctrl').textContent = el.textContent;
+      options.orderby = order;
     }
     if (!init) {
       saveSettings();
@@ -1317,18 +1390,11 @@ $.fourcat = function() {
   }
   
   function cycleOrder() {
-    if (options.orderby == 'date') {
-      setOrder('alt');
-    }
-    else if (options.orderby == 'alt') {
-      setOrder('r');
-    }
-    else {
-      setOrder('date');
-    }
+    var o = { date: 'alt', alt: 'r', r: 'lr', lr: 'date' };
+    setOrder(o[options.orderby]);
   }
   
-  buildThreads = function() {
+  function buildThreads() {
     var
       tip, i, j, fid, id, entry, thread, af, hl, onTop, pinned, provider,
       rDiff, onPage, filtered = 0, html = '';
@@ -1350,7 +1416,7 @@ $.fourcat = function() {
       provider = catalog.proxy;
     }
     else {
-      provider = catalog.server + 'res/';
+      provider = options.server + catalog.slug + '/res/';
     }
     
     hiddenThreadsCount = 0;
@@ -1392,7 +1458,7 @@ $.fourcat = function() {
       else if (!quickFilterPattern.test(entry.teaser)) {
         continue;
       }
-      thread = '<div id="thread-' + id
+      thread = '<article id="thread-' + id
       + '" class="thread"><a target="_blank" href="'
       + provider + id + '"><img alt="" id="thumb-'
       + id + '" class="thumb';
@@ -1462,12 +1528,13 @@ $.fourcat = function() {
       }
       
       if (onTop) {
-        html = thread + '</div>' + html;
+        html = thread + '</article>' + html;
       }
       else {
-        html += thread + '</div>';
+        html += thread + '</article>';
       }
     }
+    
     html += '<div class="clear"></div>';
     
     for (j in pinnedThreads) {
@@ -1476,32 +1543,21 @@ $.fourcat = function() {
     }
     
     $threads[0].innerHTML = html;
-    $thumbs = $threads.find('.thumb');
-    
-    if (options.thsize == 'small' && activeTheme.magnify) {
-      $thumbs
-        .on('mouseenter.scale', onThumbMouseIn)
-        .on('mouseleave.scale', onThumbMouseOut);
-    }
-    
-    if (!activeTheme.notipsy) {
-      $thumbs.tipsy(tipopts);
-    }
     
     if (filtered > 0) {
-      $filteredCount.html(filtered);
-      $filteredLabel.show();
+      $filteredCount[0].textContent = filtered;
+      $filteredLabel[0].style.display = 'inline';
     }
     else {
-      $filteredLabel.hide();
+      $filteredLabel[0].style.display = 'none';
     }
     
     if (hiddenThreadsCount > 0) {
-      $hiddenCount.html(hiddenThreadsCount)
-      $hiddenLabel.show();
+      $hiddenCount[0].textContent = hiddenThreadsCount;
+      $hiddenLabel[0].style.display = 'inline';
     }
     else {
-      $hiddenLabel.hide();
+      $hiddenLabel[0].style.display = 'none';
     }
   }
   
@@ -1513,21 +1569,6 @@ $.fourcat = function() {
       pulseInterval = setInterval(updateTime, 60000);
     }
     document.getElementById('updated').innerHTML = getDuration(delta, true);
-  }
-  
-  // Tipsy tooltip callback
-  function tipCb() {
-    var tip, thread;
-    
-    thread = catalog.threads[this.getAttribute('data-id')];
-    tip = 'Posted by <b>' + (thread.author ? thread.author : catalog.anon) + '</b> ';
-    tip += getDuration((new Date().getTime() / 1000) - thread.date) + ' ago';
-    
-    if (!options.extended && thread.teaser) {
-      tip += '<p>' + thread.teaser + '</p>';
-    }
-    
-    return tip;
   }
   
   function getDuration(delta, precise) {
@@ -1578,253 +1619,3 @@ $.fourcat = function() {
     return head;
   }
 };
-
-/*!
-tipsy tooltips
-(c) 2008-2010 jason frame [jason@onehackoranother.com]
-released under the MIT license
-*/
-(function($) {
-  
-  function maybeCall(thing, ctx) {
-    return (typeof thing == 'function') ? (thing.call(ctx)) : thing;
-  };
-  
-  function Tipsy(element, options) {
-    this.$element = $(element);
-    this.options = options;
-    this.enabled = true;
-  };
-  
-  Tipsy.prototype = {
-    show: function() {
-      var title = this.getTitle();
-      if (title && this.enabled) {
-        var $tip = this.tip();
-        
-        $tip.find('.tipsy-inner')[this.options.html ? 'html' : 'text'](title);
-        $tip[0].className = 'tipsy'; // reset classname in case of dynamic gravity
-        $tip.remove()
-          .css({top: 0, left: 0, visibility: 'hidden', display: 'block'})
-          .prependTo(document.body);
-        
-        var pos = {
-          top: this.$element[0].offsetTop
-            + ((this.$element[0].offsetParent === null)
-              ? 0 : this.$element[0].offsetParent.offsetTop),
-          left: this.$element[0].offsetLeft
-            + ((this.$element[0].offsetParent === null)
-              ? 0 : this.$element[0].offsetParent.offsetLeft),
-          width: this.$element[0].offsetWidth,
-          height: this.$element[0].offsetHeight
-        };
-        
-        var actualWidth = $tip[0].offsetWidth,
-          actualHeight = $tip[0].offsetHeight,
-          gravity = maybeCall(this.options.gravity, this.$element[0]);
-        
-        var tp;
-        switch (gravity.charAt(0)) {
-          case 'n':
-            tp = {
-              top: pos.top + pos.height + this.options.offset,
-              left: pos.left + pos.width / 2 - actualWidth / 2
-            };
-            break;
-          case 's':
-            tp = {
-              top: pos.top - actualHeight - this.options.offset,
-              left: pos.left + pos.width / 2 - actualWidth / 2
-            };
-            break;
-          case 'e':
-            tp = {
-              top: pos.top + pos.height / 2 - actualHeight / 2,
-              left: pos.left - actualWidth - this.options.offset
-            };
-            break;
-          case 'w':
-            tp = {
-              top: pos.top + pos.height / 2 - actualHeight / 2,
-              left: pos.left + pos.width + this.options.offset
-            };
-            break;
-        }
-        
-        if (tp.top <= 0) {
-          return;
-        }
-        
-        if (gravity.length == 2) {
-          if (gravity.charAt(1) == 'w') {
-            tp.left = pos.left + pos.width / 2 - 15;
-          } else {
-            tp.left = pos.left + pos.width / 2 - actualWidth + 15;
-          }
-        }
-        
-        $tip.css(tp).addClass('tipsy-' + gravity);
-        $tip.find('.tipsy-arrow')[0].className = 'tipsy-arrow tipsy-arrow-' + gravity.charAt(0);
-        if (this.options.className) {
-          $tip.addClass(maybeCall(this.options.className, this.$element[0]));
-        }
-        if (this.options.id) {
-          $tip[0].id = this.options.id;
-        }
-        if (this.options.fade) {
-          $tip.stop()
-            .css({opacity: 0, display: 'block', visibility: 'visible'})
-            .animate({opacity: this.options.opacity});
-        } else {
-          $tip.css({visibility: 'visible', opacity: this.options.opacity});
-        }
-      }
-    },
-    
-    hide: function() {
-      if (this.options.fade) {
-        this.tip().stop().fadeOut(function() { $(this).remove(); });
-      } else {
-        this.tip().remove();
-      }
-    },
-    
-    getTitle: function() {
-      var title, $e = this.$element, o = this.options;
-      var title, o = this.options;
-      if (typeof o.title == 'string') {
-        title = $e[0].getAttribute(o.title);
-      } else if (typeof o.title == 'function') {
-        title = o.title.call($e[0]);
-      }
-      return title || o.fallback;
-    },
-    
-    tip: function() {
-      if (!this.$tip) {
-        this.$tip = document.createElement('div');
-        this.$tip.setAttribute('class', 'tipsy');
-        this.$tip.innerHTML = '<div class="tipsy-arrow"></div><div class="tipsy-inner"></div>';
-        this.$tip = $(this.$tip);
-      }
-      return this.$tip;
-    },
-    
-    validate: function() {
-      if (!this.$element[0].parentNode) {
-        this.hide();
-        this.$element = null;
-        this.options = null;
-      }
-    },
-    
-    enable: function() { this.enabled = true; },
-    disable: function() { this.enabled = false; },
-    toggleEnabled: function() { this.enabled = !this.enabled; }
-  };
-  
-  $.fn.tipsy = function(options) {
-    
-    if (options === true) {
-      return this.data('tipsy');
-    } else if (typeof options == 'string') {
-      var tipsy = this.data('tipsy');
-      if (tipsy) tipsy[options]();
-      return this;
-    }
-    
-    options = $.extend({}, $.fn.tipsy.defaults, options);
-    
-    function get(ele) {
-      var tipsy = $.data(ele, 'tipsy');
-      if (!tipsy) {
-        tipsy = new Tipsy(ele, $.fn.tipsy.elementOptions(ele, options));
-        $.data(ele, 'tipsy', tipsy);
-      }
-      return tipsy;
-    }
-    
-    function enter() {
-      var tipsy = get(this);
-      tipsy.hoverState = 'in';
-      if (options.delayIn == 0) {
-        tipsy.show();
-      } else {
-        //tipsy.fixTitle();
-        setTimeout(
-          function() { if (tipsy.hoverState == 'in') tipsy.show(); },
-          options.delayIn
-        );
-      }
-    };
-    
-    function leave() {
-      var tipsy = get(this);
-      tipsy.hoverState = 'out';
-      if (options.delayOut == 0) {
-        tipsy.hide();
-      } else {
-        setTimeout(
-          function() { if (tipsy.hoverState == 'out') tipsy.hide(); },
-          options.delayOut
-        );
-      }
-    };
-    
-    this.each(function() { get(this); });
-    
-    if (options.trigger != 'manual') {
-      var
-        eventIn  = options.trigger == 'hover' ? 'mouseenter.tipsy' : 'focus',
-        eventOut = options.trigger == 'hover' ? 'mouseleave.tipsy' : 'blur';
-      this.on(eventIn, enter).on(eventOut, leave);
-    }
-    
-    return this;
-    
-  };
-  
-  $.fn.tipsy.defaults = {
-    id: null,
-    className: null,
-    delayIn: 250,
-    delayOut: 0,
-    fade: false,
-    fallback: '',
-    gravity: 's',
-    html: false,
-    offset: 0,
-    opacity: 1.0,
-    title: 'data-tip',
-    trigger: 'hover'
-  };
-  
-  $.fn.tipsy.elementOptions = function(ele, options) {
-    return $.metadata ? $.extend({}, options, $(ele).metadata()) : options;
-  };
-  
-  $.fn.tipsy.autoNS = function() {
-    return $(this).offset().top > ($(document).scrollTop() + $(window).height() / 2) ? 's' : 'n';
-  };
-  
-  $.fn.tipsy.autoWE = function() {
-    return $(this).offset().left > ($(document).scrollLeft() + $(window).width() / 2) ? 'e' : 'w';
-  };
-
-   $.fn.tipsy.autoBounds = function(margin, prefer) {
-    return function() {
-      var dir = {ns: prefer[0], ew: (prefer.length > 1 ? prefer[1] : false)},
-        boundTop = $(document).scrollTop() + margin,
-        boundLeft = $(document).scrollLeft() + margin,
-        $this = $(this);
-
-      if ($this.offset().top < boundTop) dir.ns = 'n';
-      if ($this.offset().left < boundLeft) dir.ew = 'w';
-      if ($(window).width() + $(document).scrollLeft() - $this.offset().left < margin) dir.ew = 'e';
-      if ($(window).height() + $(document).scrollTop() - $this.offset().top < margin) dir.ns = 's';
-
-      return dir.ns + (dir.ew ? dir.ew : '');
-    }
-  };
-  
-})(jQuery);

@@ -43,13 +43,20 @@ select {
   color: #81A2BE;
   box-shadow: none;
   background: none;
-  padding: 2px 1px;
   border-radius: 0;
 }
 
 .button:hover {
   background: none;
   color: #5F89AC;
+}
+
+#topnav .button {
+  padding: 2px;
+}
+
+#oder-list {
+  padding-left: 2px;
 }
 
 .thumb {
@@ -98,13 +105,11 @@ select {
 
 #filtered-count,
 #hidden-count,
-#ordered-by,
 .meta b {
   color: #B5BD68;
 }
 
 .clickbox {
-  padding: 2px 4px;
   border-radius: 5px 5px 5px 5px;
   background-color: #81A2BE;
   color: #282A2E;
@@ -126,12 +131,6 @@ a,
   border-bottom: 1px solid #444;
 }
 
-#order-ctrl,
-#size-ctrl,
-#teaser-ctrl {
-  margin-left: 3px;
-}
-
 #settings .active {
   color: #B5BD68;
   font-weight: bold;
@@ -151,4 +150,8 @@ a,
 
 #rss:hover {
   opacity: 1.0;
+}
+
+#tooltip {
+  box-shadow: 0 0 5px rgba(0, 0, 0, 1.0);
 }

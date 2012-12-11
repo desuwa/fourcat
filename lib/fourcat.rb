@@ -1,6 +1,5 @@
 # encoding: utf-8
 require 'fileutils'
-require 'htmlentities'
 require 'json'
 require 'logger'
 require 'net/http'
@@ -14,11 +13,8 @@ module Fourcat
 
 class Catalog
   
-  VERSION     = '1.3.3'
+  VERSION     = '2.0.2'
   
-  TAG_REGEX   = /<[^>]+>/i
-  PB_REGEX    = /[\u2028\u2029]/
-  LB_REGEX    = /<br\s?\/?>/i
   BB_TAGS     = { '[spoiler]' => '<s>', '[/spoiler]' => '</s>' }
   
   PURGE_SKIP  = 0.25
@@ -46,7 +42,7 @@ class Catalog
     :remove_exif      => false,
     :remove_oekaki    => false,
     :country_flags    => false,
-    :req_delay        => 1.2,
+    :req_delay        => 1.1,
     :req_timeout      => 10,
     :retries          => 2,
     :no_partial       => true,
@@ -273,10 +269,6 @@ class Catalog
     # Local JSON file
     @json_file = @board_dir + 'threads.json'
     
-    @omitted_regex = /([0-9]+)[^.]+([0-9]+)?/
-    
-    @entities = HTMLEntities.new
-    
     @last_refresh_time = 0
     
     # Thumbnails that appear to be dead will be placed here and
@@ -294,7 +286,7 @@ class Catalog
     @first_run = true
     
     # Thumbnail server url for spoiler revealing
-    @thumbs_url = "//0.thumbs.4chan.org/#{@opts.slug}/thumb/"
+    @thumbs_url = "//thumbs.4chan.org/#{@opts.slug}/thumb/"
     
     # Checking for the spoiler file (spoiler-SLUG.png)
     @spoiler_pic =
@@ -312,10 +304,6 @@ class Catalog
         'thumb-404.png'
       end
     
-    @pagination_pattern = Regexp.new(
-      '\[(?:<a href="[0-9]{1,2}">|<strong>)([0-9]{1,2})(?:</a>|</strong>)\] '
-    )
-    
     @server = 
       if @opts.use_ssl
         require 'net/https'
@@ -323,12 +311,9 @@ class Catalog
       else
         'http'
       end
-    @server << '://boards.4chan.org/'
+    @server << '://api.4chan.org/'
     
     @pages_uri = URI.parse(@server)
-    
-    # Number of dropped pages during a refresh cycle
-    @pages_dropped = 0
     
     # If too much pages were dropped, the thumbnail purging is skipped
     @page_drop_limit = (@opts.page_count[0] * PURGE_SKIP).ceil
@@ -427,8 +412,6 @@ class Catalog
       if resp.code != '200'
         if resp.code == '404'
           raise HTTPNotFound, "Not Found #{http.address}#{path}"
-        elsif resp.code == '302'
-          raise HTTPFound, 'HTTP 302'
         else
           raise "Skipping after HTTP #{resp.code}: #{http.address}#{path}"
         end
@@ -438,12 +421,7 @@ class Catalog
         raise "Skipping after #{e.message}: #{http.address}#{path}"
       end
       @log.debug "Retrying after #{e.message} (#{try}): #{http.address}#{path}"
-      if e === HTTPFound
-        try += @opts.retries
-        path << '?4cat'
-      else
-        try += 1
-      end
+      try += 1
       sleep(@opts.req_delay)
       retry
     end
@@ -474,7 +452,7 @@ class Catalog
     http.open_timeout = http.read_timeout = @opts.req_timeout
     
     path = "#{@pages_uri.path}#{@board}/"
-    path << "#{page_num}" unless page_num.zero?
+    path << "#{page_num}.json"
     
     resp = fetch(http, path)
     
@@ -486,14 +464,6 @@ class Catalog
       end
     
     data.force_encoding(Encoding::UTF_8)
-    
-    unless data.valid_encoding?
-      @log.debug("Re-encoding invalid UTF-8 string: #{path}")
-      data.encode!('UTF-16LE', 'UTF-8', {
-        :invalid => :replace, :undef => :replace, :replace => ''
-      })
-      data.encode!('UTF-8', 'UTF-16LE')
-    end
     
     data
   end
@@ -562,7 +532,9 @@ class Catalog
         :date => thread[:date].to_i
       }
       threads[id][:teaser] = thread[:teaser] if thread[:teaser]
-      threads[id][:author] = thread[:author] if thread[:author]
+      unless thread[:author].empty? || thread[:author] == @opts.default_name
+        threads[id][:author] = thread[:author]
+      end
       threads[id][:sticky] = thread[:sticky] if thread[:sticky]
       if thread[:s]
         threads[id][:s] = thread[:s]
@@ -576,6 +548,7 @@ class Catalog
         threads[id][:loc] = thread[:loc]
         threads[id][:locname] = thread[:locname]
       end
+      threads[id][:lr] = thread[:lr] if thread[:lr]
     end
     
     json = {
@@ -587,8 +560,7 @@ class Catalog
       :anon       => @opts.default_name,
       :mtime      => @mtime.to_i,
       :proxy      => @opts.proxy,
-      :pagesize   => @opts.page_size,
-      :server     => "#{@server}#{@board}/"
+      :pagesize   => @opts.page_size
     }
     
     json[:flags] = true if @opts.country_flags
@@ -604,7 +576,7 @@ class Catalog
   # @param [Integer] id Thread id
   # @return [String] the thread's URL
   def link_to_thread(id)
-    "#{@server}#{@board}/res/#{id}#{@opts.extension}"
+    "http://boards.4chan.org/#{@board}/res/#{id}#{@opts.extension}"
   end
   
   # Creates a new erubis template from a file
@@ -644,34 +616,43 @@ class Catalog
     threads = []
     workers = {}
     active_workers = 0
-    @pages_dropped = 0
+    pages_dropped = 0
     @this_high_reply = @last_high_reply
     
     for run in 0...@opts.page_count.length
       @log.debug "Run #{run}"
       
-      @next_page_empty = false
+      @sticky_count = 0
       
       threads[run] = []
       
-      for page in 0...@opts.page_count[run]
-        if @next_page_empty
-          @log.debug "Page #{page} is empty, breaking"
+      range = if run == 0
+        0..@opts.page_count[run]
+      else
+        0...@opts.page_count[run]
+      end
+      
+      break_next = false
+      
+      for page in range
+        break if break_next
+        if run == 0 && page == @opts.page_count[0] && @sticky_count < 2
           break
         end
         while active_workers >= @opts.workers_limit
           sleep(@opts.req_delay)
         end
         @log.debug "Page #{page}"
-        workers["#{run}-#{page}"] = Thread.new(threads[run], page) do |th, page|
+        workers["#{run}-#{page}"] =
+        Thread.new(threads[run], page, pages_dropped, break_next) do |th, page|
           begin
             active_workers += 1
             th[page] = scan_threads(get_page(page))
           rescue HTTPNotFound => e
+            break_next = true
             @log.debug "Page #{page} not found"
-            @next_page_empty = true
           rescue StandardError => e
-            @pages_dropped += 1
+            pages_dropped += 1
             @log.error get_error(e)
           ensure
             active_workers -= 1
@@ -716,11 +697,20 @@ class Catalog
       return @log.error 'Breaking on empty threadlist'
     end
     
+    # Sorting orders
     order = {}
+    
+    # Bump date (natural)
     order[:alt] = natural_order.flatten.unshift(*stickies)
+    # Creation date
     order[:date] = order[:alt].sort { |x, y| y <=> x }
+    # Reply count
     order[:r] = order[:alt].sort do |x, y|
       threadlist[y][:r] <=> threadlist[x][:r]
+    end
+    # Last reply date
+    order[:lr] = order[:alt].sort do |x, y|
+      threadlist[y][:lrdate] <=> threadlist[x][:lrdate]
     end
     
     @last_high_thread = order[:date][0]
@@ -745,7 +735,7 @@ class Catalog
       local_thumbs = Dir.glob("#{@thumbs_dir}*.jpg")
       new_thumbs = remote_thumbs - local_thumbs
       
-      if @pages_dropped >= @page_drop_limit
+      if pages_dropped >= @page_drop_limit
         @log.warn 'Too many pages dropped, skipping purge'
       else
         purge_thumbnails(local_thumbs, remote_thumbs)
@@ -794,7 +784,7 @@ class Catalog
     
     @log.debug "Delay is #{@opts.refresh_delay} (#{new_threads}/#{new_replies})"
     
-    if @opts.no_partial && @pages_dropped > 0
+    if @opts.no_partial && pages_dropped > 0
       @log.warn 'Incomplete refresh cycle, skipping output'
     else
       @mtime = Time.now.utc
@@ -826,106 +816,67 @@ class Catalog
   end
 
   # Scans the page for threads
-  # @param [String] html raw HTML to process
+  # @param [String] data json page returned by the API
   # @return [Hash{thread_id(Integer) => Hash}] a Hash of threads
-  def scan_threads(html)
-    doc = Nokogiri::HTML.parse(html)
-    
-    nextpage = doc.xpath(
-      'html/body/div[@class="pagelist desktop"]/div[@class="next"]')[0]
-    
-    if nextpage && nextpage.children[0]
-      unless nextpage.children[0].name == 'form'
-        @next_page_empty = true
-      end
-    else
-      @log.debug('Can not find the page navigation')
-    end
-    
-    nodes = doc.xpath(
-      'html/body/form[@id="delform"]/div[@class="board"]/div[@class="thread"]'
-    )
-    
-    if nodes.empty?
-      raise 'Can not find any threads'
-    end
+  def scan_threads(data)
+    data = JSON.parse(data, symbolize_names: true)
     
     threads = {}
     
-    nodes.each do |n|
+    data[:threads].each do |t|
       th = {}
       
-      # Thread id
-      th[:id] = n['id'][1..-1]
+      p = t[:posts][0]
       
-      unless op = n.xpath("div[@id='pc#{th[:id]}']/div[@id='p#{th[:id]}']")[0]
-        raise "Can not find the OP for thread #{th[:id]}"
+      th[:id] = p[:no]
+      th[:r] = p[:replies]
+      th[:i] = p[:images]
+      th[:date] = p[:time]
+      
+      th[:author] = p[:name] || ''
+      th[:author] << " #{p[:trip]}" if p[:trip]
+      th[:author] << " ## #{p[:capcode].capitalize}" if p[:capcode]
+      
+      if p[:sticky]
+        th[:sticky] = true
+        @sticky_count += 1
       end
       
-      unless postinfo = op.xpath(".//div[@id='pi#{th[:id]}']")[0]
-        raise "Can not find the postinfo for thread #{th[:id]}"
+      th[:title] = p[:sub] || ''
+      
+      th[:body] = p[:com] || ''
+      
+      # Remove EXIF meta
+      if @opts.remove_exif
+        th[:body].gsub!(/(<br>)+<span class="abbr">.+$/, '')
       end
       
-      # Link to thread
-      th[:href] = link_to_thread(th[:id])
-      
-      # Sticky thread?
-      th[:sticky] = !postinfo.xpath('.//img[@title="Sticky"]').empty?
-      
-      # Title
-      if th[:title] = postinfo.xpath("span[@class='subject']")[0]
-        th[:title] = th[:title].inner_html
-      else
-        @log.warn("Can not find the title for thread #{th[:id]}")
-        th[:title] = ''
+      # Remove Oekaki meta
+      if @opts.remove_oekaki
+        th[:body].gsub!(/<br><br><small><b>Oekaki Post<\/b>.+?<\/small>/, '')
       end
       
-      # Comment
-      if msg = op.xpath('blockquote[@class="postMessage"]')[0]
-        # Comment too long. Click here to view the full text.
-        if meta = msg.xpath('span[@class="abbr"]')[0]
-          meta.remove
-        end
-        
-        # Remove EXIF meta
-        if @opts.remove_exif
-          if (meta = msg.last_element_child) && meta['class'] == 'exif'
-            meta.remove
-          end
-        end
-        
-        # Remove Oekaki meta
-        if @opts.remove_oekaki
-          if (meta = msg.last_element_child) && meta.name == 'small'
-            meta.remove
-          end
-        end
-        
-        # Spoilers
-        if @opts.spoiler_text && !msg.text.empty?
-          spoilers = msg.xpath('span[@class="spoiler"]')
-          if spoilers.empty?
-            has_spoilers = false
-          else
-            has_spoilers = true
-            spoilers.each do |s|
-              if s.content == ''
-                s.remove
-              else
-                s.inner_html =
-                  "[spoiler]#{s.inner_html.gsub(TAG_REGEX, '')}[/spoiler]"
-              end
-            end
-          end
-        else
+      if @opts.spoiler_text && !th[:body].empty?
+        th[:body].gsub!(/\[\/spoiler\]/, '')
+        frag = Nokogiri::HTML.fragment(th[:body], 'utf-8')
+        nodes = frag.xpath('./s')
+        if nodes.empty?
           has_spoilers = false
+        else
+          has_spoilers = true
+          nodes.each do |node|
+            node.remove if node.content == ''
+            node.replace(Nokogiri::HTML.fragment(
+              "[spoiler]#{node.inner_html}[/spoiler]", 'utf-8'))
+          end
+          th[:body] = frag.to_s
         end
-        th[:body] = msg.inner_html.gsub(LB_REGEX, "\n")
-        th[:body].gsub!(TAG_REGEX, '')
       else
-        @log.warn("Can not find the message body for thread #{th[:id]}")
-        th[:body] = ''
+        has_spoilers = false
       end
+      
+      th[:body].gsub!(/<br>/i, "\n")
+      th[:body].gsub!(/<[^>]+>/i, '')
       
       if has_spoilers
         th[:body].gsub!(/\[\/?spoiler\]/, BB_TAGS) 
@@ -935,86 +886,55 @@ class Catalog
       th[:teaser] =
         unless th[:title].empty?
           unless th[:body].empty?
-            "#{th[:title]}: #{th[:body].gsub(/\n+/, ' ')}"
+            "#{th[:title]}: #{th[:body]}"
           else
             th[:title]
           end
         else
-          th[:body].gsub(/\n+/, ' ')
+          th[:body]
         end
-      
-      th[:teaser].gsub!(PB_REGEX, '')
-      
-      th[:body].gsub!("\n", '<br>')
       
       # Thumbnail
-      thumb = op.xpath("div[@id='f#{th[:id]}']")[0]
-      
-      if !thumb || @opts.text_only
+      if !p[:tim] || p[:filedeleted] || @opts.text_only
         th[:s] = @thumb_404
       else
-        thumb = thumb.xpath('.//img')[0]
-        if !thumb || thumb['src'].include?('deleted')
-          th[:s] = @thumb_404
-        elsif thumb['src'].include?('spoiler')
+        if p[:spoiler]
           th[:s] = @spoiler_pic
           th[:splr] = true
-          th[:src] = @thumbs_url + thumb.parent['href'][-17, 13] + 's.jpg'
-        else
-          th[:src] = thumb['src']
         end
+        th[:src] = "#{@thumbs_url}#{p[:tim]}s.jpg"
       end
       
-      # Author
-      author = op.xpath(
-        ".//div[@id='pi#{th[:id]}']/span[contains(@class, 'nameBlock')]"
-      )
-      if author[0]
-        if (@opts.country_flags &&
-          (flag = author.xpath('.//img[@class="countryFlag"]')[0])
-        )
-          th[:loc] = flag['alt'].downcase
-          th[:locname] = flag['title']
+      # Flags
+      if (@opts.country_flags)
+        th[:loc] = p[:country].downcase
+        th[:locname] = p[:country_name]
+      end
+      
+      # Last reply
+      if (r = t[:posts].last) != t[:posts][0]
+        rep = {}
+        
+        th[:lrdate] = rep[:date] = r[:time]
+        
+        author = r[:name] || ''
+        author << " #{r[:trip]}" if r[:trip]
+        author << " ## #{r[:capcode].capitalize}" if r[:capcode]
+        unless author.empty? || author == @opts.default_name
+          rep[:author] = author
         end
-        if userid = author.xpath(".//span[contains(@class, 'posteruid')]")[0]
-          userid.remove
-        end
-        author = author[0].text.gsub(TAG_REGEX, '').strip
-        author.gsub!(PB_REGEX, '')
-        th[:author] = author if author != @opts.default_name
+        
+        th[:lr] = rep
       else
-        @log.warn("Can not find the author for thread #{th[:id]}") 
+        th[:lrdate] = th[:date]
       end
       
-      # Omitted replies and images
-      th[:r] = 0
-      th[:i] = 0
-      replies = n.xpath('div[@class="postContainer replyContainer"]')
-      replies.each do |r|
-        reply_id = r['id'][2..-1].to_i
-        @this_high_reply = reply_id if reply_id > @this_high_reply
-        th[:r] += 1
-        th[:i] += 1 if r.xpath('.//div[@class="file"]')[0]
+      # Post rate stats
+      t[:posts].each do |r|
+        @this_high_reply = r[:no] if r[:no] > @this_high_reply
       end
       
-      if omitted = n.xpath('span[@class="summary desktop"]')[0]
-        if omitted = omitted.text.scan(/([0-9]+)[^.0-9]+([0-9]+)?/)[0]
-          th[:r] += omitted[0].to_i
-          th[:i] += omitted[1].to_i if omitted[1]
-        else
-          @log.warn("Can not parse omitted replies for thread #{th[:id]}") 
-        end
-      end
-      
-      # Timestamp UTC
-      if th[:date] = op.xpath(".//span[@class='dateTime']")[0]
-        th[:date] = Time.at(th[:date]['data-utc'].to_i)
-      else
-        @log.warn("Can not find the timestamp for thread #{th[:id]}")
-        th[:date] = Time.now
-      end
-      
-      threads[th[:id].to_i] = th
+      threads[th[:id]] = th
     end
     
     threads
@@ -1133,11 +1053,11 @@ class Catalog
                 end
               xml.description(
                 '<img src="' << src << '" alt="' << "#{id}" << '" />' <<
-                '<p>' << th[:body] << '</p>'
+                '<p>' << th[:body].gsub("\n", '<br>') << '</p>'
               )
-              xml.link "#{th[:href]}"
-              xml.guid "#{th[:href]}"
-              xml.pubDate th[:date].rfc2822.to_s
+              xml.link link_to_thread(th[:id])
+              xml.guid "#{th[:id]}"
+              xml.pubDate Time.at(th[:date]).rfc2822.to_s
             }
           end
         }
