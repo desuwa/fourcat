@@ -1252,7 +1252,7 @@ $.fourcat = function() {
     activeTheme = customTheme;
     
     $('#theme-msg')
-      .html('Theme saved')
+      .html('Done')
       .attr('class', 'msg-ok')
       .show().delay(2000).fadeOut(500);
   }
