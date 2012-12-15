@@ -64,6 +64,10 @@ select {
   box-shadow: 0 0 5px rgba(112, 128, 144, 0.45);
 }
 
+.thumb-new {
+  box-shadow: 0 0 3px 3px #007FFF;
+}
+
 .hl {
   border-style: solid;
 }
@@ -140,6 +144,7 @@ select {
 #tooltip,
 #footer {
   font-size: 15px;
+  line-height: 16px;
 }
 
 .post-reply {

@@ -63,6 +63,10 @@ select {
   border: none;
 }
 
+.thumb-new {
+  box-shadow: 0 0 3px 3px #FFF;
+}
+
 @media all and (min-width: 800px) {
   .thumb {
     opacity: 0.85;

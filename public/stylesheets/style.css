@@ -507,6 +507,7 @@ header {
 #threads {
   margin-top: 15px;
   text-align: center;
+  position: relative;
 }
 
 /* Thread wrapper */
@@ -559,6 +560,11 @@ header {
   margin: auto;
   z-index: 2;
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.thumb-new {
+  border-color: #FFA500;
+  box-shadow: 0 0 2px 1px #FFA500;
 }
 
 .thread > a:focus .thumb,
