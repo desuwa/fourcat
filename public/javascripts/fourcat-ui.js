@@ -731,7 +731,7 @@ $.fourcat = function() {
                   pattern += wordSepS + inner + wordSepE;
                 }
               }
-              pattern = new RegExp('^' + pattern, 'i');
+              pattern = new RegExp('^' + pattern, 'im');
             }
           }
           //console.log('Resulting regex: ' + pattern);
