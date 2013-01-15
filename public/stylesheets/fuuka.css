@@ -25,41 +25,47 @@ code {
   color: #dd0000;
 }
 
+header .nu {
+  border-radius: 10px;
+}
+
 #topnav .button {
   padding: 1px;
 }
 
+#topnav {
+  margin-top: 10px;
+}
+
+#order-list {
+  padding-bottom: 0px;
+}
+
+#ctrl {
+  margin-top: 10px;
+}
+
 #threads {
   padding: 0;
+  margin: 0;
 }
 
 .thread {
   background-color: #D6F0DA;
-  margin: 5px;
+  margin: 2px;
   padding: 8px 0 10px 0;
 }
-/* Thread in compact mode */
-.small .thread {
-  height: 160px;
+
+.wide.extended .thread {
+  border: none;
 }
 
-/* Thread in large mode */
-.large .thread {
-  height: 260px;
-}
-
-/* Thread in compact mode with teaser displayed */
-.extended-small .thread {
-  max-height: 350px;
-}
-
-/* Thread in large mode with teaser displayed */
-.extended-large .thread {
-  max-height: 460px;
+.wide.extended.small .thread {
+  width: 22%;
 }
 
 .teaser {
-  line-height: 15px;
+  line-height: 17px;
   margin-top: 2px;
 }
 
@@ -126,6 +132,10 @@ code {
 
 .post-notext {
   font-size: 12px;
+}
+
+hr {
+  border-top: 2px solid #EEFFF2;
 }
 
 #ctrl,

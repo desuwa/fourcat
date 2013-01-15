@@ -8,6 +8,10 @@
   box-shadow: 0 0 2px rgba(0, 0, 0, 0.25);
 }
 
+.wide .flag {
+  margin: 4px 0 0 -30px;
+}
+
 .flag-ad {background-position: -16px 0}
 .flag-ae {background-position: -32px 0}
 .flag-af {background-position: -48px 0}

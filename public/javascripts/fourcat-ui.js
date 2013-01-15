@@ -11,6 +11,10 @@ $.fourcat = function() {
     extended: true,
     // Redirect to the archive
     proxy: false,
+    // Small thumbnail size
+    smallsize: 150,
+    // Columns margin for the wide layout
+    columnMargin: 3,
     // Thumbnails server url
     contentUrl: '/',
     // Filters color palette
@@ -38,6 +42,7 @@ $.fourcat = function() {
   tooltipTimeout = null,
   hasTooltip = false,
   expandedThumbnail = null,
+  isStyleSheetLoaded = true,
   
   activeTheme = {},
   
@@ -92,8 +97,6 @@ $.fourcat = function() {
   // ---
   
   fc.init = function(opts) {
-    applyTheme(activeTheme, true);
-    
     $threads = $('#threads');
     $refresh = $('#refresh');
     $qfCtrl = $('#qf-ctrl').click(toggleQuickfilter);
@@ -113,6 +116,8 @@ $.fourcat = function() {
     $('#qf-clear').click(toggleQuickfilter);
     $('#theme-ctrl').click(showThemeEditor);
     $('#filters-ctrl').click(showFilters);
+    
+    applyTheme(activeTheme, true);
     
     $(document).on('mouseover', onMouseOver);
     $(document).on('mouseout', onMouseOut);
@@ -147,9 +152,10 @@ $.fourcat = function() {
     
     bindGlobalShortcuts();
     
-    setSize(options.thsize, true);
     setOrder(options.orderby, true);
+    setSize(options.thsize, true);
     setExtended(options.extended, true);
+    applyLayout(true);
   }
   
   function showOrderMenu() {
@@ -197,10 +203,14 @@ $.fourcat = function() {
   
   function expandThumbnail(t) {
     var
+      left, top, css,
       $this = $(t),
       oldWidth = t.offsetWidth,
       oldHeight = t.offsetHeight,
       newWidth, newHeight;
+    
+    left = t.offsetLeft;
+    top = t.offsetTop;
     
     $this.clone().insertAfter($this);
     
@@ -211,11 +221,20 @@ $.fourcat = function() {
     newWidth = t.offsetWidth;
     newHeight = t.offsetHeight;
     
-    offsetX = (-(newWidth - oldWidth) / 2);
+    offsetX = -(newWidth - oldWidth) / 2;
     offsetY = -(newHeight - oldHeight) / 2;
     
-    t.style.marginLeft = offsetX + 'px';
-    t.style.marginTop = offsetY + 'px';
+    if (activeTheme.wide) {
+      offsetX += left;
+      offsetY += top;
+      css = 'top:0;left:0';
+    }
+    else {
+      css = '';
+    }
+    
+    t.style.cssText = 'margin-left:' + offsetX
+      + 'px;margin-top:' + offsetY + 'px;' + css;
   }
   
   function collapseThumbnail(t) {
@@ -268,7 +287,7 @@ $.fourcat = function() {
       + '<span class="post-ago">'
       + getDuration(now - thread.date)
       + ' ago </span>'
-      + ((page = getThreadPage(+tid)) > 0 ? ('<span class="post-page"> (page '
+      + ((page = getThreadPage(tid)) > 0 ? ('<span class="post-page"> (page '
       + page + ')</span>') : '') + '</div>';
     
     if (!options.extended && thread.teaser) {
@@ -282,7 +301,7 @@ $.fourcat = function() {
         + (reply.author || catalog.anon) + ' </span>'
         + '<span class="post-ago">'
         + getDuration(now - reply.date)
-        + ' ago </span></div>';
+        + ' ago</span></div>';
     }
     
     el = document.createElement('div');
@@ -345,7 +364,7 @@ $.fourcat = function() {
   }
   
   function getThreadPage(tid) {
-    return 0 | (catalog.order.alt.indexOf(tid) / catalog.pagesize);
+    return 0 | (catalog.order.alt.indexOf(+tid) / catalog.pagesize);
   }
   
   // Requires proper expiration headers
@@ -427,63 +446,82 @@ $.fourcat = function() {
     var icon = ' icon="/favicon.ico"';
     
     ctxCmds = {
-      clearpin: clearPinnedThreads,
       pin: toggleThreadPin,
       hide: toggleThreadHide,
       report: reportThread
     }
-    
-    document.getElementById('ctxmenu-main').innerHTML = 
-      '<menuitem label="Unpin all threads" icon="/favicon.ico"></menuitem>';
     
     document.getElementById('ctxmenu-thread').innerHTML = 
       '<menuitem label="Pin/Unpin" data-cmd="pin"' + icon + '></menuitem>' +
       '<menuitem label="Hide" data-cmd="hide"' + icon + '></menuitem>' +
       '<menuitem label="Report" data-cmd="report"' + icon + '></menuitem>';
     
-    $('#ctxmenu-main').click(clearPinnedThreads);
     $('#ctxmenu-thread').click(onThreadContextClick);
+    $threads[0].setAttribute('contextmenu', 'ctxmenu-thread');
   }
   
   function bindGlobalShortcuts() {
     var el, tid;
+    
     if (hasWebStorage && hasNativeJSON) {
       $threads.on('mousedown', function(e) {
         el = e.target;
         if (el.className.indexOf('thumb') != -1) {
           tid = el.getAttribute('data-id');
           if (e.which == 3) {
-            $threads[0].setAttribute('contextmenu', 'ctxmenu-thread');
             document.getElementById('ctxmenu-thread').target = tid;
           }
-          else if (e.which == 1 && e.altKey) {
-            toggleThreadPin(tid);
-            return false;
-          }
-          else if (e.which == 1 && e.shiftKey) {
-            toggleThreadHide(tid);
+          else if (e.which == 1) {
+            if (e.altKey) {
+              toggleThreadPin(tid);
+            }
+            else if (e.shiftKey) {
+              toggleThreadHide(tid)
+            }
             return false;
           }
         }
-        else if (e.which == 3) {
-          $threads[0].setAttribute('contextmenu', 'ctxmenu-main');
+      });
+      $threads.on('click', function(e) {
+        if (e.which == 1 && (e.altKey || e.shiftKey)
+          && e.target.className.indexOf('thumb') != -1) {
+          return false;
         }
       });
     }
+    
     if (!activeTheme.nobinds) {
       $(document).on('keyup', processKeybind);
     }
   }
   
   function toggleThreadPin(tid) {
+    var meta, page;
+    
     if (pinnedThreads[tid] >= 0) {
       delete pinnedThreads[tid];
+      buildThreads();
     }
     else {
       pinnedThreads[tid] = catalog.threads[tid].r || 0;
+      if (!activeTheme.wide) {
+        buildThreads();
+      }
+      else {
+        document.getElementById('thumb-' + tid).className += ' pinned';
+        meta = document.getElementById('meta-' + tid);
+        meta.title += ' / (P)age';
+        page = 'P:<b>' + getThreadPage(tid) + '</b>';
+        if (meta.innerHTML) {
+          meta.innerHTML += ' / ' + page;
+        }
+        else {
+          meta.innerHTML = page;
+        }
+      }
     }
+    
     localStorage.setItem('pin-' + catalog.slug, JSON.stringify(pinnedThreads));
-    buildThreads();
   }
   
   function toggleThreadHide(tid) {
@@ -681,13 +719,13 @@ $.fourcat = function() {
     var
       rf, fid, v, w, wordcount,
       wordSepS, wordSepE, orJoin,
-      regexType = /^\/(.*)\/(i?)$/,
+      regexType = /^\/(.*)\/([im]*)$/,
       regexOrNorm = /\s*\|+\s*/g,
       regexWc = /\\\*/g, replWc = '[^\\s]*',
       regexEscape = getRegexSpecials(),
       match, inner, words, rawPattern, pattern, orOp, orCluster, type;
       
-    wordSepS = '(?=.*\\b';
+    wordSepS = '(?=[\\s\\S]*\\b';
     wordSepE = '\\b)';
     
     try {
@@ -1008,7 +1046,7 @@ $.fourcat = function() {
     }
     
     if ($filtersPanel.css('display') == 'none') {
-      buttons = ['magnify', 'nobinds', 'usessl', 'nospoiler'];
+      buttons = ['magnify', 'nobinds', 'usessl', 'nospoiler', 'wide'];
       
       theme = localStorage.getItem('theme');
       theme = theme ? JSON.parse(theme) : {};
@@ -1028,7 +1066,6 @@ $.fourcat = function() {
       
       if (theme.ss) {
         ss = document.getElementById('theme-ss');
-        theme.ss = theme.ss.split('.')[0];
         for (var i = ss.options.length - 1; i >= 0; i--) {
           if (ss.options[i].value == theme.ss) {
             ss.selectedIndex = i;
@@ -1054,7 +1091,7 @@ $.fourcat = function() {
   
   function closeThemeEditor() {    
     var buttons =
-      ['save', 'close', 'magnify', 'nobinds', 'usessl', 'nospoiler'];
+      ['save', 'close', 'magnify', 'nobinds', 'usessl', 'nospoiler', 'wide'];
     
     $('#theme-' + buttons.join(', #theme-')).off('click');
     $themePanel.hide();
@@ -1148,13 +1185,24 @@ $.fourcat = function() {
       }
     }
     
+    if (nocss || activeTheme.wide != customTheme.wide) {
+      if (customTheme.wide) {
+        $(window).on('resize', debounce(100, packThreads));
+        $threads.addClass('wide');
+      }
+      else {
+        $(window).off('resize');
+        $threads.removeClass('wide');
+      }
+    }
+    
     if (!nocss) {
       fc.applyCSS(customTheme);
     }
   }
   
   fc.applyCSS = function(customTheme) {
-    var head, link, style;
+    var head, link, style, el, version;
     
     if (!customTheme) {
       customTheme = activeTheme;
@@ -1163,21 +1211,29 @@ $.fourcat = function() {
     head = document.head || document.getElementsByTagName('head')[0];
     
     if (customTheme.ss) {
+      el = document.getElementById('base-css');
+      if (!(version = el.getAttribute('data-preset-version'))) {
+        version = '0';
+      }
       if (!(link = document.getElementById('preset-css'))) {
+        isStyleSheetLoaded = false;
         link = document.createElement('link');
         link.type = 'text/css';
         link.rel = 'stylesheet';
         link.id = 'preset-css';
-        link.href = '/stylesheets/' + customTheme.ss;
-        head.insertBefore(link, document.getElementById('base-css').nextSibling);
+        link.href = '/stylesheets/' + customTheme.ss + '.css?' + version;
+        link.addEventListener('load', onStyleSheetLoaded, false);
+        head.insertBefore(link, el.nextSibling);
       }
-      else {
-        link.href = '/stylesheets/' + customTheme.ss;
+      else if (customTheme.ss != activeTheme.ss) {
+        isStyleSheetLoaded = false;
+        link.href = '/stylesheets/' + customTheme.ss + '.css?' + version;
       }
     }
     else {
-      if (activeTheme.ss != customTheme.ss) {
-        head.removeChild(document.getElementById('preset-css'));
+      if (activeTheme.ss != customTheme.ss
+        && (el = document.getElementById('preset-css'))) {
+        head.removeChild(el);
       }
     }
     
@@ -1201,6 +1257,13 @@ $.fourcat = function() {
     }
   }
   
+  function onStyleSheetLoaded() {
+    isStyleSheetLoaded = true;
+    if (activeTheme.wide) {
+      packThreads();
+    }
+  }
+  
   // Applies and saves the theme to localStorage
   function saveTheme() {
     var ss, field, css, style, customTheme = {};
@@ -1218,17 +1281,19 @@ $.fourcat = function() {
     }
     if (customTheme.usessl != activeTheme.usessl) {
       setSSL(!!customTheme.usessl);
-      buildThreads();
     }
     
     if ($('#theme-nospoiler').hasClass('active')) {
       customTheme.nospoiler = true;
     }
     
+    if ($('#theme-wide').hasClass('active')) {
+      customTheme.wide = true;
+    }
+    
     ss = document.getElementById('theme-ss');
     if (ss.value != '0') {
-      customTheme.ss = ss.value + '.css?' + 
-        ss.options[ss.selectedIndex].getAttribute('data-version');
+      customTheme.ss = ss.value;
     }
     
     field = document.getElementById('theme-menu');
@@ -1250,6 +1315,8 @@ $.fourcat = function() {
     }
     
     activeTheme = customTheme;
+    
+    buildThreads();
     
     $('#theme-msg')
       .html('Done')
@@ -1278,7 +1345,7 @@ $.fourcat = function() {
   }
   
   // Loads data from webStorage
-  loadStorage = function() {
+  function loadStorage() {
     if (hasWebStorage && hasNativeJSON) {
       hiddenThreads = loadThreadList('hide-' + catalog.slug);
       pinnedThreads = loadThreadList('pin-' + catalog.slug);
@@ -1286,7 +1353,7 @@ $.fourcat = function() {
   }
   
   // Loads basic settings from localStorage
-  loadSettings = function() {
+  function loadSettings() {
     var settings;
     if (hasWebStorage && hasNativeJSON
       && (settings = localStorage.getItem('settings'))) {
@@ -1317,42 +1384,54 @@ $.fourcat = function() {
     localStorage.removeItem('settings');
   }
   
+  function applyLayout(init) {
+    var cls = [];
+    
+    if (activeTheme.wide) {
+      cls.push('wide');
+    }
+    
+    if (options.extended) {
+      cls.push('extended');
+    }
+    
+    cls.push(options.thsize);
+    
+    $threads[0].className = cls.join(' ');
+    
+    if (!init && activeTheme.wide) {
+      packThreads();
+    }
+  }
+  
   function setSize(size, init) {
-    var cls;
     if (size == 'small') {
-      $sizeCtrl.html($sizeCtrl.attr('data-lbl-large'));
-      cls = 'small';
+      $sizeCtrl[0].textContent = 'Large';
       options.thsize = 'small';
     }
     else {
-      $sizeCtrl.html($sizeCtrl.attr('data-lbl-small'));
-      cls = 'large';
+      $sizeCtrl[0].textContent = 'Small';
       options.thsize = 'large';
     }
-    if (options.extended) {
-      cls = 'extended-' + cls;
-    }
-    $threads.attr('class', cls);
     if (!init) {
       saveSettings();
+      applyLayout(true);
+      buildThreads();
     }
   }
   
   function setExtended(mode, init) {
-    var cls = '';
     if (mode) {
-      $teaserCtrl.html($teaserCtrl.attr('data-lbl-hide'));
-      cls = 'extended-';
+      $teaserCtrl[0].textContent = 'Hide';
       options.extended = true;
     }
     else {
-      $teaserCtrl.html($teaserCtrl.attr('data-lbl-show'));
+      $teaserCtrl[0].textContent = 'Show';
       options.extended = false;
     }
-    cls += options.thsize;
-    $threads.attr('class', cls);
     if (!init) {
       saveSettings();
+      applyLayout();
     }
   }
   
@@ -1396,14 +1475,11 @@ $.fourcat = function() {
   
   function buildThreads() {
     var
-      tip, i, j, fid, id, entry, thread, af, hl, onTop, pinned, provider,
-      rDiff, onPage, filtered = 0, html = '';
+      i, j, fid, id, entry, thread, af, hl, onTop, pinned, provider, src,
+      rDiff, onPage, filtered = 0, ratio, maxSize, imgWidth, imgHeight, calcSize,
+      html = '';
     
     if ($threads[0].hasChildNodes()) {
-      tip = document.getElementById('th-tip');
-      if (tip) {
-        document.body.removeChild(tip);
-      }
       $threads.empty();
     }
     
@@ -1425,6 +1501,8 @@ $.fourcat = function() {
       activeFilters[fid].hits = 0;
     }
     
+    calcSize = options.thsize == 'small';
+    
     threadloop: for (i = 0; i < catalog.count; ++i) {
       id = catalog.order[options.orderby][i];
       entry = catalog.threads[id];
@@ -1434,30 +1512,30 @@ $.fourcat = function() {
           ++hiddenThreadsCount;
           continue;
         }
-        if (pinnedThreads[id] >= 0) {
-          pinned = onTop = true;
-        }
-        else {
-          for (fid in activeFilters) {
-            af = activeFilters[fid];
-            if ((af.type == 0 && af.pattern.test(entry.teaser))
-              || (af.type == 1 && af.pattern.test(entry.author))) {
-              if (af.hidden) {
-                ++filtered;
-                af.hits += 1;
-                continue threadloop;
-              }
-              hl = af;
-              onTop = !!af.top;
+        for (fid in activeFilters) {
+          af = activeFilters[fid];
+          if ((af.type == 0 && af.pattern.test(entry.teaser))
+            || (af.type == 1 && af.pattern.test(entry.author))) {
+            if (af.hidden) {
+              ++filtered;
               af.hits += 1;
-              break;
+              continue threadloop;
             }
+            hl = af;
+            onTop = !!af.top;
+            af.hits += 1;
+            break;
           }
         }
       }
       else if (!quickFilterPattern.test(entry.teaser)) {
         continue;
       }
+      
+      if (pinnedThreads[id] >= 0) {
+        pinned = onTop = true;
+      }
+      
       thread = '<article id="thread-' + id
       + '" class="thread"><a target="_blank" href="'
       + provider + id + '"><img alt="" id="thumb-'
@@ -1469,14 +1547,43 @@ $.fourcat = function() {
       else if (pinned) {
         thread += ' pinned';
       }
-      thread += '" src="' + options.contentUrl
-      + (entry.s ? entry.splr && activeTheme.nospoiler ?
-          (catalog.slug + '/src/' + id + '.jpg') : ('images/' + entry.s)
-        : (catalog.slug + '/src/' + id + '.jpg'))
-      + '" data-id="' + id + '" /></a>';
+      
+      imgWidth = entry.w;
+      imgHeight = entry.h
+      
+      if (entry.s) {
+        if (entry.splr && activeTheme.nospoiler) {
+          src = catalog.slug + '/src/' + id + '.jpg';
+          imgWidth = entry.sw;
+          imgHeight = entry.sh
+        }
+        else {
+          src = 'images/' + entry.s;
+        }
+      }
+      else {
+        src = catalog.slug + '/src/' + id + '.jpg';
+      }
+      
+      if (calcSize) {
+        maxSize = options.smallsize;
+        if (imgWidth > maxSize) {
+          ratio = maxSize / imgWidth;
+          imgWidth = maxSize;
+          imgHeight = imgHeight * ratio;
+        }
+        if (imgHeight > maxSize) {
+          ratio = maxSize / imgHeight;
+          imgHeight = maxSize;
+          imgWidth = imgWidth * ratio;
+        }
+      }
+      
+      thread += '" width="' + imgWidth + '" height="' + imgHeight + '" src="'
+      + options.contentUrl + src + '" data-id="' + id + '" /></a>';
       
       if (catalog.flags) {
-        thread += '<div class="flag flag-' + entry.loc + '" title="'
+        thread += '<div class="flag flag-' + entry.loc + '" data-tip="'
         + entry.locname + '"></div>';
       }
       
@@ -1494,9 +1601,6 @@ $.fourcat = function() {
           if (rDiff > 0) {
             thread += ' (+' + rDiff + ')';
             pinnedThreads[id] = entry.r;
-          }
-          else {
-            thread += '(+0)';
           }
         }
         if (entry.i) {
@@ -1544,6 +1648,10 @@ $.fourcat = function() {
     
     $threads[0].innerHTML = html;
     
+    if (activeTheme.wide && isStyleSheetLoaded) {
+      packThreads();
+    }
+    
     if (filtered > 0) {
       $filteredCount[0].textContent = filtered;
       $filteredLabel[0].style.display = 'inline';
@@ -1559,6 +1667,56 @@ $.fourcat = function() {
     else {
       $hiddenLabel[0].style.display = 'none';
     }
+  }
+  
+  function packThreads() {
+    var i, j, nodes, colWidth, colCount, leftOffset, cntHeight, colHeights,
+      el, offsetTop, index, margin;
+    
+    nodes = document.getElementsByClassName('thread');
+    
+    if (!nodes[0]) {
+      return;
+    }
+    
+    margin = options.columnMargin;
+    
+    cntWidth = $threads[0].clientWidth;
+    colWidth = nodes[0].offsetWidth + margin;
+    colCount = (0 | (cntWidth / colWidth)) || 1;
+    
+    leftOffset = 0 | ((cntWidth - colCount * colWidth) / 2);
+    
+    cntHeight = 0;
+    colHeights = [];
+    positions = [];
+    
+    for (i = 0; i < colCount; ++i) {
+      colHeights.push(0);
+    }
+    
+    for (i = 0; el = nodes[i]; ++i) {
+      offsetTop = null;
+      index = 0;
+      for (j = colCount - 1; j >= 0; j--) {
+        if (offsetTop == null || offsetTop > colHeights[j]) {
+          offsetTop = colHeights[j] + margin;
+          index = j;
+        }
+      }
+      positions.push('position: absolute;top: '
+        + offsetTop + 'px;left:' + (leftOffset + index * colWidth) + 'px');
+      colHeights[index] = offsetTop + el.offsetHeight;
+    }
+    
+    $threads[0].style.display = 'none';
+    $threads[0].style.height = Math.max.apply(null, colHeights) + 'px';
+    
+    for (i = 0; el = nodes[i]; ++i) {
+      el.style.cssText = positions[i];
+    }
+    
+    $threads[0].style.display = '';
   }
   
   // Updates the 'Refreshed ago' counter

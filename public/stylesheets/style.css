@@ -68,11 +68,18 @@ textarea {
   font-size: 12px;
   border-radius: 5px;
   background: #fff;
+  outline: none;
 }
 
 input {
   margin: 0px 2px;
   height: 18px;
+}
+
+#qf-box {
+  border-radius: 10px;
+  padding-left: 3px;
+  padding-right: 3px;
 }
 
 s {
@@ -163,7 +170,7 @@ s {
 
 /* Halo highlight for new stuff */
 .nu {
-  box-shadow: 0px 0px 10px #FFA500 !important;
+  box-shadow: 0 0 10px 3px #FFA500 !important;
 }
 
 .nu2 {
@@ -202,13 +209,14 @@ footer {
 /***************************************************************/
 /* Container for the title and the navigation menu */
 header {
+  display: block;
   text-align: center;
   padding-top: 5px;
 }
 
 /* Board's title */
 #title {
-  font-size: 38px;
+  font-size: 32px;
   font-weight: bold;
   word-wrap: break-word;
 }
@@ -495,12 +503,6 @@ header {
   font-size: 20px;
 }
 
-/* donate button */
-#donate {
-  margin: 10px auto 0px auto;
-  width: 100px;
-}
-
 /***************************************************************/
 
 /* Threads main container */
@@ -508,6 +510,10 @@ header {
   margin-top: 15px;
   text-align: center;
   position: relative;
+}
+
+#threads.wide {
+  margin-top: 7px;
 }
 
 /* Thread wrapper */
@@ -520,12 +526,19 @@ header {
   padding: 5px 0 3px 0;
 }
 
-.thread a {
-  border: none;
+.thread-ok:before {
+  content: 'Done';
+  position: absolute;
+  margin-top: 5px;
+  margin-left: 5px;
+  border-radius: 3px;
+  padding: 1px 5px 1px 5px;
+  background-color: #b9cf8a;
+  color: #000;
 }
 
-.thread img {
-  display: inline;
+.thread a {
+  border: none;
 }
 
 /* Thread in compact mode */
@@ -540,26 +553,101 @@ header {
   height: 280px;
 }
 
+.extended .thread {
+  height: auto;
+}
+
+/* Thread in wide layout, compact mode with teaser displayed */
+.wide.extended.small .thread {
+  width: 18%;
+  min-width: 250px;
+}
+
+/* Thread in wide layout, large mode with teaser displayed */
+.wide.extended.large .thread {
+  width: 30%;
+  min-width: 370px;
+}
+
+@media all and (max-width: 1250px) {
+  .wide.extended.large .thread {
+    width: 45%;
+  }
+}
+
+@media all and (max-width: 865px) {
+  .wide.extended.large .thread {
+    left: 0 !important;
+    width: 95%;
+  }
+  
+  .wide.extended.small .thread {
+    width: 45%;
+  }
+}
+
+@media all and (max-width: 590px) {
+  .wide.extended.small .thread {
+    left: 0 !important;
+    width: 95%;
+  }
+}
+
 /* Thread in compact mode with teaser displayed */
-.extended-small .thread {
-  width: 165px;
+.extended.small .thread {
   max-height: 300px;
 }
 
 /* Thread in large mode with teaser displayed */
-.extended-large .thread {
-  width: 270px;
+.extended.large .thread {
   max-height: 390px;
+}
+
+/* Thread in wide layout */
+.wide.extended .thread {
+  white-space: pre-line;
+  text-align: left;
+  border-bottom: 1px dotted #555;
+  padding: 10px;
+}
+
+.wide .thread {
+  max-height: none !important;
+  height: auto !important;
+}
+
+.wide.small .thread {
+  overflow: visible;
+}
+
+#threads .error {
+  margin-top: 50px;
 }
 
 /* Thumbnail */
 .thumb {
   border: 2px solid #555;
   border-radius: 3px;
-  display: block;
+  display: inline;
   margin: auto;
   z-index: 2;
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+  -moz-user-select: none;
+}
+
+/* Thumbnail in wide layout */
+.wide.extended .thumb {
+  margin: 0 10px 5px 0;
+}
+
+/* Thumbnails in compact mode */
+.small .thumb {
+  max-width: 150px;
+  max-height: 150px;
+}
+
+.wide.extended .thumb {
+  float: left;
 }
 
 .thumb-new {
@@ -567,7 +655,6 @@ header {
   box-shadow: 0 0 2px 1px #FFA500;
 }
 
-.thread > a:focus .thumb,
 .thumb:hover {
   border-color: #FFA500;
 }
@@ -586,15 +673,10 @@ header {
 /* Scaled thumbnail when hovered in compact mode */
 .scaled {
   position: absolute;
+  width: auto;
+  height: auto;
   max-height: none !important;
   max-width: none !important;
-}
-
-/* Thumbnails in compact mode */
-.extended-small .thumb,
-.small .thumb {
-  max-width: 150px;
-  max-height: 150px;
 }
 
 /* Replies / images / page indicators */
@@ -619,8 +701,7 @@ header {
 }
 
 /* Teaser, displayed */
-.extended-small .teaser,
-.extended-large .teaser {
+.extended .teaser {
   display: block;
 }
 
@@ -643,11 +724,13 @@ header {
 footer {
   text-align: center;
   font-size: 11px;
-  padding-bottom: 5px;
+  padding-bottom: 15px;
+  display: block;
+  margin-top: 15px;
 }
 
 #totop {
-  margin: 50px 0 20px;
+  margin-top: 50px;
   text-align: center;
   padding-bottom: 20px;
   border-bottom: 1px dotted #555;
@@ -761,6 +844,7 @@ footer {
   padding: 5px 8px 4px 8px;
   z-index: 100000;
   word-wrap: break-word;
+  white-space: pre-line;
   max-width: 500px;
   color: #f5f5f5;
 }
@@ -770,12 +854,12 @@ footer {
 .post-teaser { margin: 3px 0 0; padding: 0; color: #bbbfbd; }
 
 .post-page {
-  font-size: 11px;
+  font-size: 90%;
   color: #7d807e;
 }
 
 .post-reply {
-  font-size: 11px;
+  font-size: 90%;
   border: none;
   border-top: 1px dotted #555;
   margin-top: 3px;

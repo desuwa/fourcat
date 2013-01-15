@@ -13,9 +13,14 @@ module Fourcat
 
 class Catalog
   
-  VERSION     = '2.0.2'
+  VERSION     = '2.1.5'
   
-  BB_TAGS     = { '[spoiler]' => '<s>', '[/spoiler]' => '</s>' }
+  BB_TAGS     = { 
+    '[spoiler]' => '<s>',
+    '[/spoiler]' => '</s>'
+  }
+  
+  ENTITIES    = { '<' => '&lt;', '>' => '&gt;' }
   
   PURGE_SKIP  = 0.25
   
@@ -39,6 +44,8 @@ class Catalog
     :content_uri      => nil,
     :user_agent       => "4cat/#{VERSION}",
     :spoiler_text     => false,
+    :spoiler_size     => [100, 100],
+    :thumb404_size    => [125, 125],
     :remove_exif      => false,
     :remove_oekaki    => false,
     :country_flags    => false,
@@ -276,6 +283,7 @@ class Catalog
     @delete_queue = []
     
     # Previous refresh cycle highest thread and reply ids
+    @this_high_reply = 0
     @last_high_thread = 0
     @last_high_reply = 0
     
@@ -536,9 +544,15 @@ class Catalog
         threads[id][:author] = thread[:author]
       end
       threads[id][:sticky] = thread[:sticky] if thread[:sticky]
+      threads[id][:w] = thread[:w]
+      threads[id][:h] = thread[:h]
       if thread[:s]
         threads[id][:s] = thread[:s]
-        threads[id][:splr] = true if thread[:splr]
+        if thread[:splr]
+          threads[id][:splr] = true 
+          threads[id][:sw] = thread[:sw]
+          threads[id][:sh] = thread[:sh]
+        end
       end
       if thread[:r] != 0
         threads[id][:r] = thread[:r]
@@ -763,6 +777,7 @@ class Catalog
               @log.error get_error(e)
             end
             threadlist[id][:s] = @thumb_404
+            threadlist[id][:w], threadlist[id][:h] = @opts.thumb404_size
             threadlist[id].delete(:src)
           ensure
             active_workers -= 1
@@ -856,27 +871,26 @@ class Catalog
         th[:body].gsub!(/<br><br><small><b>Oekaki Post<\/b>.+?<\/small>/, '')
       end
       
-      if @opts.spoiler_text && !th[:body].empty?
-        th[:body].gsub!(/\[\/spoiler\]/, '')
+      has_spoilers = th[:body].include?('<s>')
+      
+      if has_spoilers
+        th[:body].gsub!(/\[\/spoiler\]/, '') if has_spoilers
+        
         frag = Nokogiri::HTML.fragment(th[:body], 'utf-8')
-        nodes = frag.xpath('./s')
-        if nodes.empty?
-          has_spoilers = false
-        else
-          has_spoilers = true
+        
+        if has_spoilers
+          nodes = frag.xpath('./s')
           nodes.each do |node|
-            node.remove if node.content == ''
-            node.replace(Nokogiri::HTML.fragment(
-              "[spoiler]#{node.inner_html}[/spoiler]", 'utf-8'))
+            node.replace("[spoiler]#{node.inner_html}[/spoiler]")
           end
-          th[:body] = frag.to_s
         end
-      else
-        has_spoilers = false
+        
+        th[:body] = frag.to_s
       end
       
       th[:body].gsub!(/<br>/i, "\n")
       th[:body].gsub!(/<[^>]+>/i, '')
+      th[:body].gsub!(/[<>]/, ENTITIES)
       
       if has_spoilers
         th[:body].gsub!(/\[\/?spoiler\]/, BB_TAGS) 
@@ -886,7 +900,7 @@ class Catalog
       th[:teaser] =
         unless th[:title].empty?
           unless th[:body].empty?
-            "#{th[:title]}: #{th[:body]}"
+            "#{th[:title]}:\n#{th[:body]}"
           else
             th[:title]
           end
@@ -897,10 +911,17 @@ class Catalog
       # Thumbnail
       if !p[:tim] || p[:filedeleted] || @opts.text_only
         th[:s] = @thumb_404
+        th[:w], th[:h] = @opts.thumb404_size
       else
         if p[:spoiler]
           th[:s] = @spoiler_pic
           th[:splr] = true
+          th[:w], th[:h] = @opts.spoiler_size
+          th[:sw] = p[:tn_w]
+          th[:sh] = p[:tn_h]
+        else
+          th[:w] = p[:tn_w]
+          th[:h] = p[:tn_h]
         end
         th[:src] = "#{@thumbs_url}#{p[:tim]}s.jpg"
       end

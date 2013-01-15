@@ -51,12 +51,16 @@ select {
   color: #5F89AC;
 }
 
+header .nu {
+  border-radius: 10px;
+}
+
 #topnav .button {
   padding: 2px;
 }
 
-#oder-list {
-  padding-left: 2px;
+.wide.extended .thread {
+  border-bottom: 1px solid #444;
 }
 
 .thumb {
@@ -67,7 +71,7 @@ select {
   box-shadow: 0 0 3px 3px #FFF;
 }
 
-@media all and (min-width: 800px) {
+@media all and (min-width: 480px) {
   .thumb {
     opacity: 0.85;
   }
@@ -96,10 +100,6 @@ select {
   border: 2px solid #1D1F21;
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
   background-color: #282A2E;
-}
-
-.extended-small .thread {
-  max-height: 300px;
 }
 
 .teaser s {
@@ -133,6 +133,10 @@ a,
 #ctrl,
 #totop {
   border-bottom: 1px solid #444;
+}
+
+hr {
+  border-top: 1px solid #444;
 }
 
 #settings .active {

@@ -1,5 +1,5 @@
 body {
-  font: 16px
+  font: 15px
     Sylfaen,
     'Century Schoolbook L',
     'Times New Roman',
@@ -31,6 +31,10 @@ select {
   box-shadow: 0 0 0 2px #fff inset;
 }
 
+header .button {
+  padding: 2px 3px;
+}
+
 .button {
   color: #007FFF;
   box-shadow: none;
@@ -43,16 +47,30 @@ select {
   color: #C41E3A;
 }
 
+header .nu {
+  border-radius: 10px;
+}
+
 #topnav .button {
   padding: 2px;
 }
 
-.extended-small .thread {
-  max-height: 350px;
+#topnav {
+  margin-top: 10px;
 }
 
-.extended-large .thread {
-  max-height: 450px;
+#threads {
+  margin: 0px;
+  padding-top: 10px;
+}
+
+.thread {
+  margin: 1px;
+  padding: 15px 0;
+}
+
+.wide.extended .thread {
+  border-bottom: 2px dashed #ccc;
 }
 
 .hl-high {
@@ -74,6 +92,7 @@ select {
 
 .meta {
   font-size: 12px;
+  line-height: 9px;
 }
 
 .meta b {
@@ -81,7 +100,6 @@ select {
 }
 
 .teaser {
-  font-size: 15px;
   line-height: 18px;
 }
 
@@ -123,9 +141,21 @@ select {
   color: #fff;
 }
 
+#order-list {
+  padding-bottom: 0px;
+}
+
+#ctrl {
+  margin-top: 10px;
+}
+
 #ctrl,
 #totop {
   border-bottom: 2px dashed #ccc;
+}
+
+hr {
+  border-top: 2px dashed #ccc;
 }
 
 #settings .active {
