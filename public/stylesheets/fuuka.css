@@ -60,10 +60,6 @@ header .nu {
   border: none;
 }
 
-.wide.extended.small .thread {
-  width: 22%;
-}
-
 .teaser {
   line-height: 17px;
   margin-top: 2px;
@@ -123,15 +119,7 @@ header .nu {
 }
 
 #tooltip {
-  font-size: 14px;
-}
-
-.post-reply {
-  font-size: 13px;
-}
-
-.post-notext {
-  font-size: 12px;
+  font-family: Arial, sans-serif;
 }
 
 hr {

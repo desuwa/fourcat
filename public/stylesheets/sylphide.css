@@ -171,16 +171,11 @@ hr {
   border: 1px solid #EEE;
 }
 
-#tooltip,
+#tooltip {
+  font-family: Arial, sans-serif;
+}
+
 #footer {
   font-size: 15px;
   line-height: 16px;
-}
-
-.post-reply {
-  font-size: 13px;
-}
-
-.post-notext {
-  font-size: 12px;
 }

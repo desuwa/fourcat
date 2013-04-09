@@ -164,19 +164,7 @@ header .nu {
 }
 
 #tooltip {
-  font-size: 14px;
-}
-
-.post-reply {
-  font-size: 13px;
-}
-
-.post-notext {
-  font-size: 12px;
-}
-
-#title {
-  color: #AF0A0F;
+  font-family: Arial, sans-serif;
 }
 
 #ctrl,

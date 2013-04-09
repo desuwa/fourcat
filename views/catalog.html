@@ -9,7 +9,7 @@
   <link rel="alternate" title="4chan Catalog - /<%= @opts.slug %>/" href="/<%= @opts.slug %>/feed.rss" type="application/rss+xml"><% end %><% if @opts.country_flags %>
   <link rel="stylesheet" type="text/css" href="/stylesheets/flags.css"><% end %>
   <link id="base-css" data-preset-version="1" rel="stylesheet" type="text/css" href="/stylesheets/style.css">
-  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
   <script type="text/javascript" src="/javascripts/fourcat-ui.js"></script>
   <script type="text/javascript">
     var fourcat = new $.fourcat();
@@ -30,13 +30,13 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
     <li class="sep">|</li><% end %>
     <li class="slug"><a class="button" href="/a/">/a/</a></li>
     <li class="slug"><a class="button" href="/jp/">/jp/</a></li>
-    <!--<li id="more-slugs-btn"><span class="button">…</span></li>-->
+    <li id="more-slugs-btn"><span class="button">…</span></li>
     <li class="sep">|</li>
-    <li><a class="wut button" target="_blank" data-tip="/<%= @opts.slug %>/ on 4chan" href="http://boards.4chan.org/<%= @board %>/"><img alt="" src="/images/4chan.png"></a></li>
+    <li><a class="button" target="_blank" href="http://boards.4chan.org/<%= @board %>/"><img data-tip="/<%= @opts.slug %>/ on 4chan" alt="" src="/images/4chan.png"></a></li>
   </ul></nav>
   <div id="ctrl">
     <div id="info">
-      <a id="refresh" data-label="Delay is" href="" class="button">Refresh</a> Updated <span id="updated"></span> ago &mdash; Ordered by <span id="ordered-by"></span><span id="filtered-label"> &mdash; Filtered threads: <span id="filtered-count"></span></span><span id="hidden-label"> &mdash; Hidden threads: <span id="hidden-count"></span> - <a id="filters-clear-hidden" href="">show</a></span>
+      <a id="refresh" data-label="Delay is" href="" class="button">Refresh</a> Updated <span id="updated"></span> ago<span id="filtered-label"> &mdash; Filtered threads: <span id="filtered-count"></span></span><span id="hidden-label"> &mdash; Hidden threads: <span id="hidden-count"></span> - <a id="filters-clear-hidden" href="">clear</a></span>
     </div>
     <div id="settings">
       <span class="lbl">Order:</span><div id="order-cnt"><span id="order-ctrl" class="button">Date</span>
@@ -69,6 +69,7 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
   <table id="filter-table">
     <thead>
       <tr>
+        <th></th>
         <th>On</th>
         <th>Pattern</th>
         <th>Boards</th>
@@ -83,7 +84,7 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
     </tbody>
     <tfoot>
       <tr>
-        <td colspan="8">
+        <td colspan="9">
           <span id="filters-add" class="button left">Add</span>
           <span class="right">
             <span id="filters-msg"></span>
@@ -189,23 +190,25 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
 <div id="theme" class="panel">
 <h3>Settings</h3>
   <h4>Options</h4>
-  <ul class="clickset">
+  <ul id="theme-set" class="clickset">
     <li><span id="theme-magnify" class="button clickbox left"></span>&mdash; Magnify small thumbnails.</li>
     <li><span id="theme-nobinds" class="button clickbox left"></span>&mdash; Disable keybinds.</li>
     <li><span id="theme-usessl" class="button clickbox left"></span>&mdash; Use HTTPS.</li>
     <li><span id="theme-nospoiler" class="button clickbox left"></span>&mdash; Don't spoiler images.</li>
     <li><span id="theme-wide" class="button clickbox left"></span>&mdash; Wide layout.</li>
+    <li><span id="theme-replies" class="button clickbox left"></span>&mdash; Always show last replies in tooltips.</li>
   </ul>
   <h4>Shortcuts</h4>
   <ul class="clickset">
     <li><kbd>R</kbd> &mdash; Refresh current page</li>
     <li><kbd>X</kbd> &mdash; Reorder threads</li>
     <li><kbd>S</kbd> &mdash; Open search box, <kbd>Esc</kbd> to close</li>
-    <li><kbd title="Right Mouse Button">RMB</kbd> &mdash; Threads context menu (Firefox only)</li>
+    <li><kbd>Ctrl</kbd> &mdash; Show last replies in tooltips.</li>
+    <li><kbd data-tip="Right Mouse Button">RMB</kbd> &mdash; Threads context menu (Firefox only)</li>
   </ul>
-  <!--<h4>Custom Menu</h4>
+  <h4>Custom Menu</h4>
   <div>Limit the main menu to the following boards</div>
-  <input placeholder="example: jp tg mu" class="settings-field" type="text" id="theme-menu">-->
+  <input placeholder="example: jp tg mu" class="settings-field" type="text" id="theme-menu">
   <h4>Stylesheet</h4>
   <select id="theme-ss" size="1">
     <option value="0">Default</option>
@@ -217,7 +220,7 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
     <option value="myon">Myon</option>
   </select>
   <h4>Custom CSS</h4>
-  <textarea id="theme-css" rows="4" cols="45"></textarea> 
+  <textarea id="theme-css" class="settings-area" rows="4"></textarea> 
   <hr>
   <span class="right">
     <span id="theme-msg"></span>

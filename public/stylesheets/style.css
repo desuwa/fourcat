@@ -312,7 +312,7 @@ header {
 
 /* Top navigation menu */
 #topnav {
-  margin-top: 15px;
+  margin-top: 10px;
   line-height: 20px;
 }
 
@@ -355,7 +355,8 @@ header {
 /***************************************************************/
 
 /* Theme editor panel */
-#theme {
+#theme,
+#merge {
   width: 330px;
   top: 60px;
   left: 50%;
@@ -374,7 +375,7 @@ header {
   width: 100%;
 }
 
-#theme-css {
+.settings-area {
   font-family:
     'DejaVu Sans Mono',
     'Consolas',
@@ -454,11 +455,17 @@ header {
 }
 
 #filter-list .filter-pattern {
-  width: 140px;
+  width: 130px;
 }
 
 #filter-list .filter-boards {
-  width: 40px;
+  width: 38px;
+}
+
+.filter-up {
+  opacity: 0.25;
+  padding-right: 2px;
+  cursor: pointer;
 }
 
 #filter-table {
@@ -469,6 +476,10 @@ header {
   font-weight: bold;
   font-size: 11px;
   min-width: 28px;
+}
+
+#filter-table th:first-child {
+  min-width: 0;
 }
 
 #filter-table th,
@@ -559,7 +570,7 @@ header {
 
 /* Thread in wide layout, compact mode with teaser displayed */
 .wide.extended.small .thread {
-  width: 18%;
+  width: 23%;
   min-width: 250px;
 }
 
@@ -569,13 +580,17 @@ header {
   min-width: 370px;
 }
 
-@media all and (max-width: 1250px) {
+@media all and (max-width: 1300px) {
   .wide.extended.large .thread {
     width: 45%;
   }
+  
+  .wide.extended.small .thread {
+    width: 30%;
+  }
 }
 
-@media all and (max-width: 865px) {
+@media all and (max-width: 900px) {
   .wide.extended.large .thread {
     left: 0 !important;
     width: 95%;
@@ -586,7 +601,7 @@ header {
   }
 }
 
-@media all and (max-width: 590px) {
+@media all and (max-width: 600px) {
   .wide.extended.small .thread {
     left: 0 !important;
     width: 95%;
@@ -595,12 +610,12 @@ header {
 
 /* Thread in compact mode with teaser displayed */
 .extended.small .thread {
-  max-height: 300px;
+  max-height: 315px;
 }
 
 /* Thread in large mode with teaser displayed */
 .extended.large .thread {
-  max-height: 390px;
+  max-height: 400px;
 }
 
 /* Thread in wide layout */
@@ -694,7 +709,7 @@ header {
 
 /* Teaser, hidden */
 .teaser {
-  line-height: 14px;
+  line-height: 15px;
   margin-top: 2px;
   padding: 0 5px;
   display: none;
@@ -710,6 +725,7 @@ header {
   background-color: #a1a8c7;
   color: #a1a8c7;
   text-shadow: none;
+  padding-bottom: 1px;
 }
 
 .teaser s:hover {
@@ -849,9 +865,20 @@ footer {
   color: #f5f5f5;
 }
 
-.post-author { color: #00A550; font-weight: bold; }
+.post-author {
+  color: #00A550;
+  font-weight: bold;
+}
 
-.post-teaser { margin: 3px 0 0; padding: 0; color: #bbbfbd; }
+.post-teaser {
+  margin: 2px 0 0;
+  padding: 0;
+  color: #bbbfbd;
+}
+
+.post-last {
+  color: #bbbfbd;
+}
 
 .post-page {
   font-size: 90%;
@@ -862,7 +889,19 @@ footer {
   font-size: 90%;
   border: none;
   border-top: 1px dotted #555;
-  margin-top: 3px;
+  margin-top: 2px;
   padding-top: 2px;
-  color: #bbbfbd;
+  max-height: 122px;
+  overflow: hidden;
+}
+
+.post-thumb {
+  max-height: 80px;
+  margin: 2px 5px 2px 0;
+  float: left;
+}
+
+#tooltip s {
+  background-color: #000;
+  color: #000;
 }
