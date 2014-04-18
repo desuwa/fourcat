@@ -29,6 +29,18 @@ header .nu {
   color: #dd0000;
 }
 
+.thread-ctrl {
+  color: #0000EE;
+}
+
+.thread-ctrl .icon:hover {
+  color: #dd0000;
+}
+
+.wide .score {
+  left: 5px;
+}
+
 #title {
   font-weight: normal;
   font-size: 28px;
@@ -36,6 +48,10 @@ header .nu {
   width: 90%;
   margin: auto;
   padding-bottom: 5px;
+}
+
+#threads {
+  margin-top: 15px;
 }
 
 #topnav .button {
@@ -49,6 +65,10 @@ header .nu {
 #ctrl {
   padding-bottom: 5px;
   margin-top: 0;
+}
+
+#pinned-ctrl:before {
+  font-size: 14px;
 }
 
 #info,
@@ -88,6 +108,7 @@ header .nu {
 
 .wide .thread {
   padding-top: 5px;
+  padding-bottom: 4px;
 }
 
 #threads.wide {

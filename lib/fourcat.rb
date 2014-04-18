@@ -13,7 +13,7 @@ module Fourcat
 
 class Catalog
   
-  VERSION     = '2.3.0'
+  VERSION     = '3.7.0'
   
   BB_TAGS     = { 
     '[spoiler]' => '<s>',
@@ -22,49 +22,56 @@ class Catalog
   
   ENTITIES    = { '<' => '&lt;', '>' => '&gt;' }
   
-  PURGE_SKIP  = 0.25
-  
   @defaults = {
-    :approot          => File.expand_path(File.dirname(__FILE__) + '/../'),
-    :loglevel         => Logger::WARN,
-    :use_json_api     => false,
-    :title            => nil,
-    :public_dir       => nil,
-    :default_name     => 'Anonymous',
-    :precompress      => false,
-    :stats            => false,
-    :proxy            => nil,
-    :debug            => false,
-    :text_only        => false,
-    :write_html       => true,
-    :html_template    => 'catalog.html',
-    :write_replies    => true,
-    :image_replies    => false,
-    :write_rss        => false,
-    :write_json       => false,
-    :rss_desc         => nil,
-    :web_uri          => nil,
-    :content_uri      => nil,
-    :user_agent       => "4cat/#{VERSION}",
-    :spoiler_text     => false,
-    :spoiler_size     => [100, 100],
-    :thumb404_size    => [125, 125],
-    :remove_exif      => false,
-    :remove_oekaki    => false,
-    :country_flags    => false,
-    :req_delay        => 1.0,
-    :req_delay_media  => 0.5,
-    :req_timeout      => 10,
-    :retries          => 3,
-    :no_partial       => true,
-    :page_count       => [11, 2],
-    :page_size        => 15,
-    :refresh_delay    => 60,
-    :refresh_range    => [60, 300],
-    :refresh_step     => 10,
-    :refresh_thres    => nil,
-    :use_ssl          => false,
-    :workers_limit    => 3
+    :approot            => File.expand_path(File.dirname(__FILE__) + '/../'),
+    :loglevel           => Logger::WARN,
+    :title              => nil,
+    :public_dir         => nil,
+    :default_name       => 'Anonymous',
+    :precompress        => false,
+    :stats              => false,
+    :archive            => nil,
+    :archive_ssl        => false,
+    :debug              => false,
+    :text_only          => false,
+    :nsfw               => false,
+    :tagged             => false,
+    :es_host            => 'localhost:9200',
+    :local_host         => nil,
+    :filename_tag       => false,
+    :skipwords          => nil,
+    :deep_search        => false,
+    :activity_range     => nil,
+    :write_html         => true,
+    :html_template      => 'catalog.html',
+    :write_replies      => true,
+    :image_replies      => false,
+    :write_rss          => false,
+    :write_json         => false,
+    :rss_desc           => nil,
+    :web_uri            => nil,
+    :content_uri        => nil,
+    :user_agent         => "4cat/#{VERSION}",
+    :spoiler_text       => false,
+    :spoiler_size       => [100, 100],
+    :thumb404_size      => [125, 125],
+    :remove_exif        => false,
+    :remove_oekaki      => false,
+    :remove_fortune     => false,
+    :country_flags      => false,
+    :req_delay          => 1.0,
+    :req_delay_media    => 0.5,
+    :req_timeout        => 30,
+    :req_timeout_media  => 10,
+    :retries            => 3,
+    :refresh_delay      => 60,
+    :refresh_range      => [30, 120],
+    :refresh_step       => 10,
+    :refresh_thres      => 5,
+    :use_ssl            => false,
+    :proxy_addr         => nil,
+    :proxy_port         => nil,
+    :workers_limit      => 3,
   }
   
   def self.defaults=(opts)
@@ -76,6 +83,12 @@ class Catalog
   end
   
   attr_accessor :opts
+  
+  begin
+    require_relative 'fourcat-es.rb'
+    include Fourcat::ES
+  rescue LoadError
+  end
   
   # Constructor
   #
@@ -155,14 +168,32 @@ class Catalog
   # @option opts [true, false] remove_oekaki
   #   Remove Oekaki meta. Defaults to false.
   #
+  # @option opts [true, false] remove_fortune
+  #   Remove Fortune meta. Defaults to false.
+  #
   # @option opts [true, false] country_flags
   #   Display country flags.
   #
-  # @option opts [Numeric] req_delay
-  #   Delay in seconds between requests, defaults to 1.2
+  # @option opts [true, false] filename_tag
+  #   Generate a filterable tags from filenames.
   #
-  # @option opts req_timeout Socket open/read timeouts in seconds,
+  # @option opts [Numeric] req_delay
+  #   Delay in seconds between requests, defaults to 1.0
+  #
+  # @option opts [Numeric] req_delay_media
+  #   Delay in seconds between requests for files, defaults to 0.5
+  #
+  # @option opts [Numeric] req_timeout Socket open/read timeouts in seconds,
+  #   defaults to 30
+  # 
+  # @option opts [Numeric] req_timeout_media Same as req_timeout but for files,
   #   defaults to 10
+  # 
+  # @option opts [String] local_host Bind to a specific IP
+  # 
+  # @option opts [String] proxy_addr Proxy IP
+  # 
+  # @option opts [Numeric] proxy_port Proxy port
   # 
   # @option opts [Fixnum] workers_limit
   #   Maximum number of HTTP worker threads,
@@ -221,10 +252,6 @@ class Catalog
     @opts.slug ||= @board # Local short name for the board
     
     @opts.title ||= "/#{@opts.slug}/ - Catalog"
-    
-    if @opts.proxy
-      @opts.proxy << '/' if @opts.proxy[-1, 1] != '/'
-    end
     
     if @opts.public_dir
       @opts.public_dir << '/' if @opts.public_dir[-1, 1] != '/'
@@ -291,20 +318,14 @@ class Catalog
     
     @last_refresh_time = 0
     
-    # Thumbnails that appear to be dead will be placed here and
-    # deleted during the next refresh cycle
-    @delete_queue = []
-    
     # Previous refresh cycle highest thread and reply ids
-    @this_high_reply = 0
     @last_high_thread = 0
     @last_high_reply = 0
+    @new_threads_count = 0
     
     # For stats tracking
+    @skip_stats = true
     @last_hour = false
-    
-    # For stats tracking and speed adjustment
-    @first_run = true
     
     # Thumbnail server url for spoiler revealing
     @thumbs_url = "//thumbs.4chan.org/#{@opts.slug}/thumb/"
@@ -325,30 +346,27 @@ class Catalog
         'thumb-404.png'
       end
     
-    @server = 
-      if @opts.use_ssl
-        require 'net/https'
-        'https'
-      else
-        'http'
-      end
-    
-    if @opts.use_json_api
-      @server << '://api.4chan.org/'
-    else
-      @server << '://boards.4chan.org/'
+    if @opts.use_ssl
+      require 'net/https'
     end
     
-    @pages_uri = URI.parse(@server)
+    if @opts.tagged || @opts.activity_range
+      @elasticsearch = Elasticsearch::Client.new(host: @opts.es_host)
+      
+      @tag_status = {}
+      @global_terms = {}
+      @global_terms_timestamp = 0
+    end
     
-    # If too much pages were dropped, the thumbnail purging is skipped
-    @page_drop_limit = (@opts.page_count[0] * PURGE_SKIP).ceil
+    @api_server = 'api.4chan.org'
     
     # jsonified threadlist cache for when write_json and write_html are true
     @json_cache = nil
     
     # Last successful write time (Time UTC)
     @mtime = 0
+    
+    @thread_cache = {}
     
     @halt = false
   end
@@ -359,7 +377,6 @@ class Catalog
     init_dirs
     
     @log.unknown "Running 4cat #{VERSION}"
-    @log.unknown "Data source is #{@server}"
     
     init_stats if @opts.stats
     
@@ -375,13 +392,14 @@ class Catalog
       rescue Exception => e
         if e.kind_of?(CatalogHalt)
           @log.unknown 'Halting'
+          raise e
         else
-          @log.fatal get_error(e)
+          @log.error get_error(e)
         end
-        cleanup
-        raise e
       end
     end
+    
+    cleanup
   end
   
   # Runs the crawler once
@@ -398,62 +416,19 @@ class Catalog
   end
   
   # Adjusts the refresh speed
-  # @param [Fixnum] new_threads New threads since the last refresh cycle
-  # @param [Fixnum] new_replies New replies since the last refresh cycle
-  def adjust_speed(new_threads, new_replies)
-    if new_threads > 0
-      @opts.refresh_delay -= new_threads * @opts.refresh_step
+  # @param [Fixnum] new_replies_count New replies since the last refresh cycle
+  def adjust_speed(new_replies_count)
+    if new_replies_count > @opts.refresh_thres
+      multiplier = new_replies_count / @opts.refresh_thres
+      @opts.refresh_delay -= @opts.refresh_step * multiplier
     else
-      if @opts.refresh_thres && (new_replies > @opts.refresh_thres)
-        @opts.refresh_delay -= @opts.refresh_step
-      else
-        @opts.refresh_delay += @opts.refresh_step
-      end
+      @opts.refresh_delay += @opts.refresh_step
     end
+    
     if @opts.refresh_delay < @opts.refresh_range[0]
       @opts.refresh_delay = @opts.refresh_range[0]
     elsif @opts.refresh_delay > @opts.refresh_range[1]
       @opts.refresh_delay = @opts.refresh_range[1]
-    end
-  end
-  
-  def check_catalog(threadlist, order)
-    cat = get_catalog
-    check = JSON.parse(cat, symbolize_names: true);
-    check.each do |c|
-      c[:threads].each do |t|
-        if !threadlist[t[:no]] && t[:no] < @last_high_thread
-          thread = format_post_json(t)
-          
-          if @opts.write_replies
-            reps = "#{@replies_dir}#{t[:no]}.json"
-            if File.exist?(reps)
-              thread[:replies] = JSON.parse(
-                File.open(reps, 'r:UTF-8') { |f| f.read },
-                symbolize_names: true
-              )
-              thread[:lr] = thread[:replies].last.clone
-              thread[:lr].delete(:teaser)
-              lrdate = thread[:lr][:date]
-            else
-              lrdate = thread[:date]
-            end
-          else
-            lrdate = thread[:date]
-          end
-          
-          thread[:lrdate] = lrdate
-          
-          threadlist[t[:no]] = thread
-          
-          order_index = (c[:page] + 1) * @opts.page_size - 1
-          if order[order_index]
-            order.insert(order_index, t[:no])
-          else
-            order << t[:no]
-          end
-        end
-      end
     end
   end
   
@@ -473,19 +448,22 @@ class Catalog
       http.verify_mode = OpenSSL::SSL::VERIFY_NONE
     end
     
+    if @opts.local_host
+      http.local_host = @opts.local_host
+    end
+    
     try = 1
     begin
       resp = http.request_get(path, @headers)
+      
       if resp.code != '200'
         if resp.code == '404'
           raise HTTPNotFound, "Not Found #{http.address}#{path}"
-        elsif resp.code == '503'
-          raise HTTPServiceUnavailable, 'Service Unavailable'
-        else
-          raise "Skipping after HTTP #{resp.code}: #{http.address}#{path}"
+        elsif resp.kind_of?(Net::HTTPServerError)
+          raise HTTPServerError, "HTTP #{resp.code}: #{http.address}#{path}"
         end
       end
-    rescue Timeout::Error, Errno::ECONNRESET, EOFError, HTTPServiceUnavailable => e
+    rescue Timeout::Error, Errno::ECONNRESET, EOFError, HTTPServerError => e
       if try > @opts.retries
         raise "Skipping after #{e.message}: #{http.address}#{path}"
       end
@@ -498,12 +476,10 @@ class Catalog
   end
   
   def get_catalog
-    http = Net::HTTP.new('api.4chan.org')
+    http = Net::HTTP.new(@api_server, nil, @opts.proxy_addr, @opts.proxy_port)
     http.open_timeout = http.read_timeout = @opts.req_timeout
     
-    path = "/#{@opts.slug}/catalog.json"
-    
-    resp = fetch(http, path)
+    resp = fetch(http, "/#{@opts.slug}/catalog.json")
     
     data = 
       if resp['content-encoding'] == 'gzip'
@@ -528,45 +504,9 @@ class Catalog
   # @see #fetch
   def get_image(url)
     uri = URI.parse(url)
-    http = Net::HTTP.new(uri.host, @pages_uri.port)
-    http.open_timeout = http.read_timeout = @opts.req_timeout
+    http = Net::HTTP.new(uri.host, nil, @opts.proxy_addr, @opts.proxy_port)
+    http.open_timeout = http.read_timeout = @opts.req_timeout_media
     fetch(http, uri.path).body
-  end
-  
-  # Fetches a page
-  # @param [Fixnum] page_num Page number
-  # @see #fetch
-  def get_page(page_num)
-    http = Net::HTTP.new(@pages_uri.host, @pages_uri.port)
-    http.open_timeout = http.read_timeout = @opts.req_timeout
-    
-    path = "#{@pages_uri.path}#{@board}/"
-    if @opts.use_json_api
-      path << "#{page_num}.json"
-    elsif page_num > 0
-      path << "#{page_num}"
-    end
-    
-    resp = fetch(http, path)
-    
-    data = 
-      if resp['content-encoding'] == 'gzip'
-        Zlib::GzipReader.new(StringIO.new(resp.body)).read
-      else
-        resp.body
-      end
-    
-    data.force_encoding(Encoding::UTF_8)
-    
-    unless data.valid_encoding?
-      @log.debug("Re-encoding invalid UTF-8 string: #{path}")
-      data.encode!('UTF-16LE', 'UTF-8', {
-        :invalid => :replace, :undef => :replace, :replace => ''
-      })
-      data.encode!('UTF-8', 'UTF-16LE')
-    end
-    
-    data
   end
   
   # Creates board specific directories
@@ -614,6 +554,7 @@ class Catalog
       if entry.length > 0
         mtime = entry[0].to_i
         @last_high_reply = @last_high_thread = entry[1].to_i
+        @skip_stats = false
       end
     end
     
@@ -631,33 +572,51 @@ class Catalog
   # @see #refresh
   def jsonify_threads(threadlist, order)
     return @json_cache if @json_cache
+    
+    page_size = false
+    
     threads = {}
+    
     threadlist.each do |id, thread|
-      threads[id] = {
+      page_size = thread[:page_size] unless page_size
+      
+      th = {
         :date => thread[:date].to_i
       }
-      threads[id][:teaser] = thread[:teaser] || ''
-      threads[id][:author] = thread[:author] if thread[:author]
-      threads[id][:sticky] = thread[:sticky] if thread[:sticky]
-      threads[id][:w] = thread[:w]
-      threads[id][:h] = thread[:h]
+      
+      th[:teaser] = thread[:teaser] || ''
+      th[:author] = thread[:author] if thread[:author]
+      th[:sticky] = thread[:sticky] if thread[:sticky]
+      th[:w] = thread[:w]
+      th[:h] = thread[:h]
+      
+      th[:tags] = thread[:tags] if thread[:tags]
+      th[:file] = thread[:file] if thread[:file]
+      
       if thread[:s]
-        threads[id][:s] = thread[:s]
+        th[:s] = thread[:s]
         if thread[:splr]
-          threads[id][:splr] = true 
-          threads[id][:sw] = thread[:sw]
-          threads[id][:sh] = thread[:sh]
+          th[:splr] = true 
+          th[:sw] = thread[:sw]
+          th[:sh] = thread[:sh]
         end
       end
+      
       if thread[:r] != 0
-        threads[id][:r] = thread[:r]
-        threads[id][:i] = thread[:i] if thread[:i]
+        th[:r] = thread[:r]
+        th[:i] = thread[:i] if thread[:i]
       end
+      
       if @opts.country_flags
-        threads[id][:loc] = thread[:loc]
-        threads[id][:locname] = thread[:locname]
+        th[:loc] = thread[:loc]
+        th[:locname] = thread[:locname]
       end
-      threads[id][:lr] = thread[:lr] if thread[:lr]
+      
+      th[:lr] = thread[:lr] if thread[:lr]
+      
+      th[:act] = thread[:act] if thread[:act]
+      
+      threads[id] = th
     end
     
     json = {
@@ -668,14 +627,27 @@ class Catalog
       :delay      => @opts.refresh_delay,
       :anon       => @opts.default_name,
       :mtime      => @mtime.to_i,
-      :proxy      => @opts.proxy,
-      :pagesize   => @opts.page_size
+      :pagesize   => page_size,
+      :deep_search => @opts.deep_search
     }
+    
+    if @opts.activity_range
+      json[:activity_range] = @opts.activity_range
+    end
+    
+    if @opts.archive
+      json[:proxy] = @opts.archive
+      json[:proxy_ssl] = @opts.archive_ssl
+    end
     
     json[:flags] = true if @opts.country_flags
     
+    json[:nsfw] = true if @opts.nsfw
+    
     if @opts.write_json && @opts.write_html
-      @json_cache = json.to_json.gsub(/[\u2028\u2029]/, '')
+      @json_cache = json.to_json
+      @json_cache.gsub!(/[\u2028\u2029]/, '')
+      @json_cache
     else
       json.to_json.gsub(/[\u2028\u2029]/, '')
     end
@@ -702,19 +674,14 @@ class Catalog
   # @param [Array<String>] remote an Array of absolute paths
   # @param [Array<String>] local an Array of absolute paths
   def purge_thumbnails(local, remote)
-    @log.debug 'Purging dead thumbnails'
     dead = local - remote
     if dead.length > 0
-      purgelist = dead & @delete_queue
-      @delete_queue = dead - @delete_queue
       begin
-        FileUtils.rm(purgelist, force: true)
-        @log.debug "Purged #{purgelist.length} dead thumbnails."
+        FileUtils.rm(dead, force: true)
+        #@log.debug "Purged #{dead.length} dead thumbnails."
       rescue StandardError => e
         @log.error 'purge_thumbnails: ' << get_error(e)
       end
-    else
-      @log.debug 'Nothing to purge.'
     end
   end
   
@@ -722,170 +689,97 @@ class Catalog
   def refresh
     @log.debug "Refreshing /#{@opts.slug}/"
     
-    threads = []
-    workers = {}
-    active_workers = 0
-    pages_dropped = 0
     @this_high_reply = @last_high_reply
+    @this_high_thread = @last_high_thread
+    @new_threads_count = 0
     
-    for run in 0...@opts.page_count.length
-      @log.debug "Run #{run}"
-      
-      @sticky_count = 0
-      
-      threads[run] = []
-      
-      range = if run == 0
-        0..@opts.page_count[run]
-      else
-        0...@opts.page_count[run]
-      end
-      
-      break_next = false
-      
-      for page in range
-        break if break_next
-        if run == 0 && page == @opts.page_count[0] && @sticky_count < 2
-          break
-        end
-        while active_workers >= @opts.workers_limit
-          sleep(@opts.req_delay)
-        end
-        @log.debug "Page #{page}"
-        workers["#{run}-#{page}"] =
-        Thread.new(threads[run], page) do |th, page|
-          begin
-            active_workers += 1
-            th[page] = parse_response(get_page(page))
-          rescue HTTPNotFound => e
-            break_next = true
-            @log.debug "Page #{page} not found"
-          rescue StandardError => e
-            pages_dropped += 1
-            @log.error get_error(e)
-          ensure
-            active_workers -= 1
-          end
-        end
-        sleep @opts.req_delay
-      end
-      
-      while active_workers > 0
-        sleep 0.5
-      end
-    end
+    catalog = get_catalog
+    threads = parse_catalog(catalog)
     
-    threadlist = {}
-    stickies = []
-    natural_order = []
-    new_threads = 0
-    
-    run = threads.length - 1
-    
-    while run >= 0
-      page_order = []
-      threads[run].each do |page_threads|
-        next unless page_threads
-        
-        page_threads.each do |id, thread|
-          next if threadlist.has_key?(id)
-          threadlist[id] = thread
-          if id > @last_high_thread
-            new_threads += 1
-          end
-          next if thread[:sticky] && stickies << id
-          page_order << id
-        end
-      end
-      
-      natural_order << page_order
-      run -= 1
-    end
+    @thread_cache = threads
     
     # Bailing out on empty threadlist
-    if threadlist.empty?
-      adjust_speed(0, 0)
+    if threads.empty?
+      adjust_speed(0)
       update_stats(0, 0) if @opts.stats
       return @log.error 'Breaking on empty threadlist'
+    end
+    
+    if @opts.tagged
+      tag_threads(threads)
     end
     
     # Sorting orders
     order = {}
     
     # Bump date (natural)
-    order[:alt] = natural_order.flatten.unshift(*stickies)
-    
-    # Checking for missed threads
-    if pages_dropped == 0
-      begin
-        check_catalog(threadlist, order[:alt])
-      rescue StandardError => e
-        @log.error 'threadlist check: ' << get_error(e)
-      end
-    end
+    order[:alt] = threads.keys
     
     # Creation date
-    order[:date] = order[:alt].sort { |x, y| y <=> x }
-    # Reply count
-    order[:r] = order[:alt].sort do |x, y|
-      threadlist[y][:r] <=> threadlist[x][:r]
-    end
-    # Last reply date
-    order[:lr] = order[:alt].sort do |x, y|
-      threadlist[y][:lrdate] <=> threadlist[x][:lrdate]
+    order[:date] = order[:alt].sort do |x, y|
+      y <=> x
     end
     
-    @last_high_thread = order[:date][0]
-    if @this_high_reply > @last_high_reply
-      new_replies = @this_high_reply - @last_high_reply
-      @last_high_reply = @this_high_reply
-    else
-      new_replies = 0
+    # Reply count
+    order[:r] = order[:alt].sort do |x, y|
+      threads[y][:r] <=> threads[x][:r]
+    end
+    
+    # Last reply date
+    order[:lr] = order[:alt].sort do |x, y|
+      threads[y][:lrdate] <=> threads[x][:lrdate]
+    end
+    
+    # Activity
+    if @opts.activity_range
+      order[:act] = get_activity_order(threads, order[:alt])
     end
     
     # Fetching thumbnails
     unless @opts.text_only
-      thumblist = {}
+      thumbnails = {}
       
-      threadlist.each do |tid, thread|
+      threads.each do |id, thread|
         if thread[:src]
-          thumblist["#{@thumbs_dir}#{tid}.jpg".freeze] = [ thread[:src], tid ]
+          thumbnails["#{@thumbs_dir}#{id}.jpg".freeze] = [ thread[:src], id ]
         end
         
         if @opts.image_replies && thread[:imgs]
           i = 0
           thread[:imgs].each do |img|
             key = "#{@thumbs_dir}#{img[1]}.jpg".freeze
-            thumblist[key] = [ img[0], img[1], tid, img[2] ]
+            # url, post id, thread id, reply index
+            thumbnails[key] = [ img[0], img[1], id, img[2] ]
             i += 1
           end
         end
       end
       
-      remote_thumbs = thumblist.keys
+      remote_thumbs = thumbnails.keys
       local_thumbs = Dir.glob("#{@thumbs_dir}*.jpg")
       new_thumbs = remote_thumbs - local_thumbs
       
-      if pages_dropped >= @page_drop_limit
-        @log.warn 'Too many pages dropped, skipping purge'
-      else
-        purge_thumbnails(local_thumbs, remote_thumbs)
-      end
-      
       workers = {}
       active_workers = 0
+      
+      #@log.debug "Fetching thumbnails"
       
       new_thumbs.each do |file|
         while active_workers >= @opts.workers_limit
           sleep(@opts.req_delay)
         end
         
-        src = thumblist[file][0]
-        id = thumblist[file][1]
-        tid = thumblist[file][2]
-        rindex = thumblist[file][3]
+        th = thumbnails[file]
+        # image url
+        src = th[0]
+        # post id
+        id = th[1]
+        # thread id (replies only)
+        tid = th[2]
+        # reply index
+        rindex = th[3]
         
-        @log.debug "Thumbnail (#{id}) #{src}"
+        #@log.debug "Thumbnail (#{id}) #{src}"
         workers[id] = Thread.new(src, id, tid, rindex) do |src, id, tid, rindex|
           begin
             active_workers += 1
@@ -898,11 +792,11 @@ class Catalog
               @log.error get_error(e)
             end
             if tid
-              threadlist[tid][:replies][rindex].delete(:img)
+              threads[tid][:replies][rindex].delete(:img)
             else
-              threadlist[id][:s] = @thumb_404
-              threadlist[id][:w], threadlist[id][:h] = @opts.thumb404_size
-              threadlist[id].delete(:src)
+              threads[id][:s] = @thumb_404
+              threads[id][:w], threads[id][:h] = @opts.thumb404_size
+              threads[id].delete(:src)
             end
           ensure
             active_workers -= 1
@@ -914,49 +808,57 @@ class Catalog
       while active_workers > 0
         sleep 0.5
       end
+      
+      purge_thumbnails(local_thumbs, remote_thumbs)
     end
     
-    unless @first_run
-      adjust_speed(new_threads, new_replies)
+    if @this_high_reply > @last_high_reply
+      new_replies_count = @this_high_reply - @last_high_reply
+      @last_high_reply = @this_high_reply
     else
-      @first_run = false
+      new_replies_count = 0
     end
     
-    @log.debug "Delay is #{@opts.refresh_delay} (#{new_threads}/#{new_replies})"
+    if @this_high_thread > @last_high_thread
+      @last_high_thread = @this_high_thread
+    end
     
-    if @opts.no_partial && pages_dropped > 0
-      @log.warn 'Incomplete refresh cycle, skipping output'
+    if !@skip_stats
+      adjust_speed(new_replies_count)
+      update_stats(@new_threads_count, new_replies_count) if @opts.stats
+      #@log.debug "Stats: #{@new_threads_count}/#{new_replies_count}"
     else
-      @mtime = Time.now.utc
-      
-      begin
-        write_json(threadlist, order)
-      rescue StandardError => e
-        @log.error 'write_json: ' << get_error(e)
-      end if @opts.write_json
-      
-      begin
-        write_html(threadlist, order)
-      rescue Exception => e
-        @log.error 'write_html: ' << get_error(e)
-      end if @opts.write_html
-      
-      begin
-        write_replies(threadlist)
-      rescue StandardError => e
-        @log.error 'write_replies: ' << get_error(e)
-      end if @opts.write_replies
-     
-      begin
-        write_rss(threadlist, order[:date])
-      rescue StandardError => e
-        @log.error 'write_rss: ' << get_error(e)
-      end if @opts.write_rss
-     
-      @json_cache = nil if @json_cache
+      @log.debug 'First run, skipping stats'
+      @skip_stats = false
     end
     
-    update_stats(new_threads, new_replies) if @opts.stats
+    @mtime = Time.now.utc
+    
+    begin
+      write_json(threads, order)
+    rescue StandardError => e
+      @log.error 'write_json: ' << get_error(e)
+    end if @opts.write_json
+    
+    begin
+      write_html(threads, order)
+    rescue StandardError => e
+      @log.error 'write_html: ' << get_error(e)
+    end if @opts.write_html
+    
+    begin
+      write_replies(threads)
+    rescue StandardError => e
+      @log.error 'write_replies: ' << get_error(e)
+    end if @opts.write_replies
+   
+    begin
+      write_rss(threads, order[:date])
+    rescue StandardError => e
+      @log.error 'write_rss: ' << get_error(e)
+    end if @opts.write_rss
+   
+    @json_cache = nil if @json_cache
   end
   
   def format_author(post)
@@ -964,6 +866,7 @@ class Catalog
     author << " #{post[:trip]}" if post[:trip]
     author << " ## #{post[:capcode].capitalize}" if post[:capcode]
     if !author.empty? && author != @opts.default_name
+      author.gsub!(/&#039;/, "'")
       author
     else
       nil
@@ -986,6 +889,11 @@ class Catalog
     # Remove Oekaki meta
     if @opts.remove_oekaki
       body.gsub!(/<br><br><small><b>Oekaki Post<\/b>.+?<\/small>/, '')
+    end
+    
+    # Remove fortune
+    if @opts.remove_fortune
+      body.gsub!(/<span class="fortune".+?<\/span>/, '')
     end
     
     has_spoilers = body.include?('<s>')
@@ -1022,279 +930,198 @@ class Catalog
   end
   
   def format_teaser(title, body)
-    if title
-      if body
-        "#{title}:\n#{body}"
+    teaser =
+      if title
+        if body
+          "#{title}:\n#{body}"
+        else
+          title
+        end
       else
-        title
+        body
       end
-    else
-      body
-    end
+    
+    teaser.gsub!(/&#039;/, "'") if teaser
+    
+    teaser
   end
   
-  def format_post_json(post)
-    th = {}
+  def format_op(post)
+    # Pulling from cache
+    if th = @thread_cache[post[:no]]
+      th[:act] = nil if th[:act]
+      if post[:filedeleted]
+        th[:s] = @thumb_404
+        th[:w], th[:h] = @opts.thumb404_size
+      end
+    else
+      th = {}
+      
+      th[:id] = post[:no]
+      th[:date] = post[:time].to_i
+      
+      th[:author] = format_author(post)
+      
+      th[:title] = post[:sub]
+      th[:body] = format_body(post)
+      th[:teaser] = format_teaser(th[:title], th[:body])
+      
+      # Thumbnail
+      if !post[:tim] || post[:filedeleted] || @opts.text_only
+        th[:s] = @thumb_404
+        th[:w], th[:h] = @opts.thumb404_size
+      else
+        if post[:spoiler]
+          th[:s] = @spoiler_pic
+          th[:splr] = true
+          th[:w], th[:h] = @opts.spoiler_size
+          th[:sw] = post[:tn_w]
+          th[:sh] = post[:tn_h]
+        else
+          th[:w] = post[:tn_w]
+          th[:h] = post[:tn_h]
+        end
+        th[:src] = "#{@thumbs_url}#{post[:tim]}s.jpg"
+      end
+      
+      # Flags
+      if (@opts.country_flags && post[:country])
+        th[:loc] = post[:country].downcase
+        th[:locname] = post[:country_name]
+      end
+      
+      # Filename tag
+      if @opts.filename_tag && post[:filename] && !(post[:filename] =~ /^[0-9]+$/)
+        file_tag = post[:filename].gsub(/\[[^\]]+\]/, '')
+        file_tag.gsub!(/&#039;/, "'")
+        file_tag.gsub!(/\([^\)]+\)/, '')
+        file_tag.gsub!(/\.(?:mkv|mp4|avi).*$/, '')
+        file_tag.gsub!(/[._\s]+/, ' ')
+        
+        if !file_tag.empty? && !(file_tag =~ /[a-f0-9]{32,}/)
+          th[:file] = file_tag
+            .split(/([-',a-zA-Z]+)/)
+            .reject { |m| m.strip!; m.empty? }
+            .join(' ')
+        end
+      end
+    end
     
-    th[:id] = post[:no]
     th[:r] = post[:replies]
     th[:i] = post[:images]
-    th[:date] = post[:time].to_i
     
     if post[:sticky]
       th[:sticky] = true
-    end
-    
-    th[:author] = format_author(post)
-    
-    th[:title] = post[:sub]
-    
-    th[:body] = format_body(post)
-    
-    th[:teaser] = format_teaser(th[:title], th[:body])
-    
-    # Thumbnail
-    if !post[:tim] || post[:filedeleted] || @opts.text_only
-      th[:s] = @thumb_404
-      th[:w], th[:h] = @opts.thumb404_size
-    else
-      if post[:spoiler]
-        th[:s] = @spoiler_pic
-        th[:splr] = true
-        th[:w], th[:h] = @opts.spoiler_size
-        th[:sw] = post[:tn_w]
-        th[:sh] = post[:tn_h]
-      else
-        th[:w] = post[:tn_w]
-        th[:h] = post[:tn_h]
-      end
-      th[:src] = "#{@thumbs_url}#{post[:tim]}s.jpg"
-    end
-    
-    # Flags
-    if (@opts.country_flags && post[:country])
-      th[:loc] = post[:country].downcase
-      th[:locname] = post[:country_name]
+    elsif th[:sticky]
+      th.delete(:sticky)
     end
     
     th
   end
   
-  def parse_response(data)
-    if @opts.use_json_api
-      parse_json(JSON.parse(data, symbolize_names: true))
-    else
-      parse_html(data)
-    end
-  end
-  
-  # Scans the page for threads
-  # @param [String] html raw HTML to process
-  # @return [Hash] a Hash of threads, same format as the decoded JSON API response
-  def parse_html(html)
-    threads = []
-    
-    thread_html = html.scan(/<div class="thread" id="t[0-9]+">.*?<\/div><hr>/)
-    
-    thread_html.each do |t|
-      posts = []
-      
-      post_html = t.scan(/<div class="postContainer [^>]+>.*?<\/blockquote><\/div>/)
-      
-      rep_count = -1
-      img_count = -1
-      
-      post_html.each do |p|
-        post = {}
-        
-        rep_count += 1
-        
-        inner = p.scan(/<div id="p([0-9]+)" class="post [^"]+"><div.*?<\/div>.*?<span class="subject">([^<]*)<\/span> <span class="nameBlock([^"]*)?">(.*?)<span class="dateTime" data-utc="([0-9]+)">.*?<blockquote class="postMessage" id="m[0-9]+">(.*?)<\/blockquote>/m)[0]
-        
-        post[:no] = inner[0].to_i
-        
-        if file = p.scan(/<div class="file"(.*?)class="fileThumb[^<]+<img src="([^>]+)>/)[0]
-          filemeta = file[0]
-          src = file[1]
-          if src.include?('deleted')
-            post[:filedeleted] = true
-          elsif src.include?('spoiler')
-            img_count += 1
-            
-            post[:spoiler] = true
-            
-            img_dims = filemeta.scan(/B, ([0-9]+)x([0-9]+)/)[0]
-            
-            tn_w = img_dims[0].to_i
-            tn_h = img_dims[1].to_i
-            
-            max_size = 250.0;
-            
-            if (tn_w > max_size)
-              ratio = max_size / tn_w;
-              tn_w = max_size;
-              tn_h = (tn_h * ratio).round(1);
-            end
-            
-            if (tn_h > max_size)
-              ratio = max_size / tn_h;
-              tn_h = max_size;
-              tn_w = (tn_w * ratio).round(1);
-            end
-            post[:tim] = filemeta.scan(/File: <a href=".*?\/([0-9]+)\.[a-z]+"/)[0][0].to_i
-            post[:tn_w] = tn_w
-            post[:tn_h] = tn_h
-          else
-            img_count += 1
-            post[:tim] = src.scan(/\/([0-9]+)s\.jpg"/)[0][0].to_i
-            tn_dims = src.scan(/height: ([0-9]+)px; width: ([0-9]+)px/)[0]
-            post[:tn_w] = tn_dims[1]
-            post[:tn_h] = tn_dims[0]
-          end
-        end
-        
-        # Subject
-        if !inner[1].empty?
-          post[:sub] = inner[1]
-        end
-        
-        # Nameblock
-        name = inner[3]
-        
-        # Capcode
-        if !(capcode = inner[2]).empty?
-          if capcode = capcode.scan(/ capcode([^\s]+)/)[0]
-            post[:capcode] = capcode[0].downcase
-            name.sub!(/<strong class="capcode .*?<\/strong>/, '')
-          end
-        end
-        
-        if @opts.country_flags && name.include?('class="countryFlag">')
-          flag = name.scan(/alt="([^"]+)" title="([^"]+)" class="countryFlag">/)[0]
-          post[:country] = flag[0]
-          post[:country_name] = flag[1]
-        end
-        
-        if name.include?('<span class="posteruid')
-          name.sub!(/<span class="posteruid [^<]+<[^<]+<[^<]+<\/span>/, '')
-        end
-        
-        name.gsub!(/<[^>]+>/i, '')
-        name.strip!
-        
-        post[:name] = name
-        
-        # Timestamp UTC
-        post[:time] = inner[4].to_i
-        
-        if !(com = inner[5]).empty?
-          if com.include?('<span class="abbr">')
-            com.sub!(/<br><span class="abbr">.*?<\/span>/, '')
-          end
-          post[:com] = com
-        end
-        
-        posts << post
-      end
-      
-      img_count = 0 if img_count < 0
-      
-      if summary = t.scan(/<span class="summary desktop">([0-9]+)[^.0-9]+([0-9]+)?/)[0]
-        rep_count += summary[0].to_i if summary[0]
-        img_count += summary[1].to_i if summary[1]
-      end
-      
-      posts[0][:replies] = rep_count
-      posts[0][:images] = img_count
-      
-      posts[0][:sticky] = true if t.include?('"stickyIcon retina">')
-      
-      threads << { posts: posts }
-    end
-    
-    parse_json({ threads: threads })
-  end
-  
   # Parses the decoded JSON API response
   # @param [Hash] json decoded JSON API response
   # @return [Hash{thread_id(Integer) => Hash}] a Hash of threads
-  def parse_json(json)
-    threads = {}
+  def parse_catalog(json)
+    catalog = JSON.parse(json, symbolize_names: true)
     
-    json[:threads].each do |t|
+    threadlist = {}
+    
+    catalog.each do |page|
+      threads = page[:threads]
       
-      th = format_post_json(t[:posts][0])
+      page_size = threads.size
       
-      @sticky_count += 1 if th[:sticky]
-      
-      # Last reply
-      r = t[:posts].last
-      th[:lrdate] = r[:time].to_i
-      if th[:r] > 0
-        if @opts.write_replies
-          repstamp = 0
-          last_replies = []
-          img_replies = []
+      threads.each do |t|
+        th = format_op(t)
+        
+        tid = th[:id]
+        
+        if tid > @last_high_thread
+          @new_threads_count += 1
+          @this_high_thread = tid if tid > @this_high_thread
+        end
+        
+        th[:page_size] = page_size
+        
+        # Last reply
+        if th[:r] > 0
+          th[:lrdate] = t[:last_replies].last[:time].to_i
           
-          i = 1
-          while r = t[:posts][i]
-            repstamp += r[:no]
+          if @opts.write_replies
+            repstamp = 0
+            last_replies = []
+            last_replies_map = {}
+            img_replies = []
             
-            rep = {}
-            rep[:date] = r[:time].to_i
-            author = format_author(r)
-            rep[:author] = author if author
-            teaser = format_teaser(r[:sub], format_body(r, true))
-            rep[:teaser] = teaser if teaser
+            cached_replies = th[:replies_map] || {}
             
-            if r[:tim] && !r[:filedeleted]
-              if @opts.image_replies && !@opts.text_only
-                if r[:spoiler]
-                  rep[:s] = @spoiler_pic
-                  rep[:splr] = true
-                  rep[:w], rep[:h] = @opts.spoiler_size
-                  rep[:sw] = r[:tn_w]
-                  rep[:sh] = r[:tn_h]
-                else
-                  rep[:w] = r[:tn_w]
-                  rep[:h] = r[:tn_h]
-                end
-                
-                rep[:img] = r[:no]
-                img_replies << [ "#{@thumbs_url}#{r[:tim]}s.jpg", r[:no], i - 1 ]
+            author = nil
+            i = 0
+            while r = t[:last_replies][i]
+              repstamp += r[:no]
+              
+              @this_high_reply = r[:no] if r[:no] > @this_high_reply
+              
+              unless rep = cached_replies[r[:no]]
+                rep = {}
+                rep[:date] = r[:time].to_i
+                author = format_author(r)
+                rep[:author] = author if author
+                teaser = format_teaser(r[:sub], format_body(r, true))
+                rep[:teaser] = teaser if teaser
               end
+              
+              if r[:tim] && !r[:filedeleted]
+                if @opts.image_replies && !@opts.text_only
+                  if r[:spoiler]
+                    rep[:s] = @spoiler_pic
+                    rep[:splr] = true
+                    rep[:w], rep[:h] = @opts.spoiler_size
+                    rep[:sw] = r[:tn_w]
+                    rep[:sh] = r[:tn_h]
+                  else
+                    rep[:w] = r[:tn_w]
+                    rep[:h] = r[:tn_h]
+                  end
+                  
+                  rep[:img] = r[:no]
+                  img_replies << [ "#{@thumbs_url}#{r[:tim]}s.jpg", r[:no], i ]
+                end
+              end
+              
+              last_replies << rep
+              last_replies_map[r[:no]] = rep
+              
+              i += 1
             end
             
-            last_replies << rep
+            th[:repstamp] = repstamp
+            th[:replies] = last_replies
+            th[:replies_map] = last_replies_map
+            th[:imgs] = img_replies
             
-            i += 1
+            th[:lr] = { date: rep[:date] }
+            th[:lr][:author] = author if author
+          else
+            unless rep = th[:lr]
+              rep = {}
+              rep[:date] = r[:time].to_i
+              author = format_author(r)
+              rep[:author] = author if author
+            end
+            
+            th[:lr] = rep
           end
-          
-          th[:repstamp] = repstamp
-          th[:replies] = last_replies
-          th[:imgs] = img_replies
-          
-          th[:lr] = { date: rep[:date] }
-          th[:lr][:author] = author if author
         else
-          rep = {}
-          rep[:date] = r[:time].to_i
-          author = format_author(r)
-          rep[:author] = author if author
-          
-          th[:lr] = rep
+          th[:lrdate] = t[:time].to_i
         end
+        
+        threadlist[tid] = th
       end
-      
-      # Post rate stats
-      t[:posts].each do |r|
-        @this_high_reply = r[:no] if r[:no] > @this_high_reply
-      end
-      
-      threads[th[:id]] = th
     end
     
-    threads
+    threadlist
   end
   
   # Updates stats
@@ -1356,7 +1183,7 @@ class Catalog
   
   # Renders the HTML page
   # @see #refresh
-  def write_html(threadlist, order)
+  def write_html(threads, order)
     # Template changed?
     if (mtime = File.mtime(@tpl_file)) > @tpl_mtime
       @log.unknown 'Reloading template'
@@ -1378,20 +1205,20 @@ class Catalog
   
   # Outputs the thread list as JSON
   # @see #refresh
-  def write_json(threadlist, order)
-    data = jsonify_threads(threadlist, order)
+  def write_json(threads, order)
+    data = jsonify_threads(threads, order)
     write_content(data, @json_file)
     write_content(data, @json_file + '.gz', true) if @opts.precompress
   end
   
   # Outputs last replies as JSON
   # @see #refresh
-  def write_replies(threadlist)
+  def write_replies(threads)
     stamps = {}
     current = []
     old = Dir.glob("#{@replies_dir}*.json")
     
-    threadlist.each do |id, thread|
+    threads.each do |id, thread|
       next unless thread[:replies]
       file = "#{@replies_dir}#{id}.json"
       current << file
@@ -1410,7 +1237,7 @@ class Catalog
     
     begin
       FileUtils.rm(purgelist, force: true)
-      @log.debug "Purged #{purgelist.length} dead reply file(s)."
+      #@log.debug "Purged #{purgelist.length} dead reply file(s)."
     rescue StandardError => e
       @log.error 'write_replies: ' << get_error(e)
     end
@@ -1468,8 +1295,8 @@ class HTTPError < StandardError; end
 # Raised on HTTP 404
 class HTTPNotFound < HTTPError; end
 
-# Raised on HTTP 503
-class HTTPServiceUnavailable < HTTPError; end
+# Raised on HTTP 5xx
+class HTTPServerError < HTTPError; end
 
 # Raised when asked to halt
 class CatalogHalt < StandardError; end

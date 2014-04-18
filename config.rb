@@ -7,13 +7,15 @@ defaults: {
 
 boards: {
   a: {
-    title: '/a/ - Animu & Mango',
-    page_count: [ 11, 2, 1 ],
+    title: '/a/ - Anime & Manga',
+    filename_tag: true,
+    spoiler_text: true,
   },
   
   jp: {
-    proxy: 'http://fuuka.warosu.org/jp/thread/',
-    refresh_delay: 120,
-    refresh_range: [ 60, 240 ],
+    title: '/jp/ - Japan/General',
+    archive: 'fuuka.warosu.org',
+    archive_ssl: true,
+    spoiler_text: true,
   },
 }

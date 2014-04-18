@@ -2,7 +2,7 @@
 4chan thread catalog generator.
 
 ## System requirements
-- Ruby 1.9.2 or higher.
+- Ruby 2.0 or higher.
 - Gems
   - `daemons` if you want to use the provided daemonizer.
   - `erubis` for html output.
@@ -28,18 +28,6 @@ Check `fourcat.rb` for the complete list of available options.
 
 Some basic options:
 
-> **Symbol**: `page_count`  
-  **Type**: Array of Integers  
-  **Default**: `[ 11, 2 ]`
-
-Maximum number of pages to fetch per run during a refresh cycle.  
-By default, the crawler will fetch the first 16 pages during the first run, then 2 pages during the second run.  
-This is usually fine for moderately slow boards like /tg/ or /tv/.  
-For fast moving boards you will probably need to add a third run: `[ 16, 3, 1]`.  
-Other comatose boards will do fine with `[ 16, 1 ]`
-
-***
-
 > **Symbol**: `refresh_delay`  
   **Type**: Integer  
   **Default**: `60`
@@ -53,22 +41,6 @@ Base refresh delay in seconds. Will be (loosely) adjusted according to the board
   **Default**: `[ 60, 300 ]`
 
 Minimum and maximum refresh delays.
-
-***
-
-> **Symbol**: `req_delay`  
-  **Type**: Float  
-  **Default**: `1.2`
-
-Delay, in seconds, between http requests.
-
-***
-
-> **Symbol**: `teaser_length`  
-  **Type**: Integer  
-  **Default**: `200`
-
-Excerpt (teaser) character length.
 
 ***
 
@@ -106,32 +78,24 @@ Hide spoilered text in the catalog.
 
 ***
 
-> **Symbol**: `remove_exif`  
+> **Symbol**: `remove_{exif,oekaki,fortune}`  
   **Type**: true, false  
   **Default**: `false`
 
-Remove EXIF metadata.
+Remove EXIF/Oekaki/Fortune metadata.
 
 ***
 
-> **Symbol**: `remove_oekaki`  
+> **Symbol**: `filename_tag`  
   **Type**: true, false  
   **Default**: `false`
 
-Remove Oekaki metadata.
+Generate a filterable tags from filenames.
 
 ***
 
-> **Symbol**: `proxy`  
+> **Symbol**: `archive`  
   **Type**: String, nil  
   **Default**: `nil`
 
-Fuuka style archive URL. ex: `http://archive.example.com/jp/thread/`
-
-***
-
-> **Symbol**: `use_ssl`  
-  **Type**: true, false  
-  **Default**: `false`
-
-Use HTTP/SSL.
+Fuuka style archive host. ex: `archive.example.com`

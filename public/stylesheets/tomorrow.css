@@ -51,6 +51,14 @@ select {
   color: #5F89AC;
 }
 
+.thread-ctrl {
+  color: #81A2BE;
+}
+
+.thread-ctrl .icon:hover {
+  color: #5F89AC;
+}
+
 header .nu {
   border-radius: 10px;
 }
@@ -109,8 +117,17 @@ header .nu {
 
 #filtered-count,
 #hidden-count,
-.meta b {
+.meta-cell {
   color: #B5BD68;
+}
+
+.meta-ins,
+.meta-cell:before {
+  color: #C5C8C6;
+}
+
+.meta-cell.sticky {
+  color: #81A2BE;
 }
 
 .clickbox {

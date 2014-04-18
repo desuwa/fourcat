@@ -25,6 +25,14 @@ code {
   color: #dd0000;
 }
 
+.thread-ctrl {
+  color: #34345C;
+}
+
+.thread-ctrl .icon:hover {
+  color: #dd0000;
+}
+
 header .nu {
   border-radius: 10px;
 }
@@ -45,6 +53,10 @@ header .nu {
   margin-top: 10px;
 }
 
+#pinned-ctrl:before {
+  font-size: 14px;
+}
+
 #threads {
   padding: 0;
   margin: 0;
@@ -53,11 +65,15 @@ header .nu {
 .thread {
   background-color: #D6F0DA;
   margin: 2px;
-  padding: 8px 0 10px 0;
+  padding: 0 0 10px 0;
 }
 
 .wide.extended .thread {
   border: none;
+}
+
+.wide .thread {
+  padding-bottom: 4px;
 }
 
 .teaser {

@@ -2,14 +2,14 @@
   font-family: 'Dancing Script';
   font-style: normal;
   font-weight: 400;
-  src: url(http://themes.googleusercontent.com/static/fonts/dancingscript/v3/DK0eTGXiZjN6yA8zAEyM2VhlQWQpSCpzb2Peu3I-Q34.woff) format('woff'),  url(http://themes.googleusercontent.com/static/fonts/dancingscript/v3/DK0eTGXiZjN6yA8zAEyM2QNMAcR23K2W2XJa2LmwCb4.ttf) format('truetype');
+  src: url(//themes.googleusercontent.com/static/fonts/dancingscript/v3/DK0eTGXiZjN6yA8zAEyM2VhlQWQpSCpzb2Peu3I-Q34.woff) format('woff'),  url(//themes.googleusercontent.com/static/fonts/dancingscript/v3/DK0eTGXiZjN6yA8zAEyM2QNMAcR23K2W2XJa2LmwCb4.ttf) format('truetype');
 }
 
 @font-face {
   font-family: 'Source Sans Pro';
   font-style: normal;
   font-weight: 400;
-  src: url(http://themes.googleusercontent.com/static/fonts/sourcesanspro/v5/ODelI1aHBYDBqgeIAH2zlBM0YzuT7MdOe03otPbuUS0.woff) format('woff'), url(http://themes.googleusercontent.com/static/fonts/sourcesanspro/v5/ODelI1aHBYDBqgeIAH2zlEY6Fu39Tt9XkmtSosaMoEA.ttf) format('truetype');
+  src: url(//themes.googleusercontent.com/static/fonts/sourcesanspro/v5/ODelI1aHBYDBqgeIAH2zlBM0YzuT7MdOe03otPbuUS0.woff) format('woff'), url(//themes.googleusercontent.com/static/fonts/sourcesanspro/v5/ODelI1aHBYDBqgeIAH2zlEY6Fu39Tt9XkmtSosaMoEA.ttf) format('truetype');
 }
 
 body {
@@ -55,14 +55,21 @@ textarea {
   }
 }
 
+#protip {
+  color: #000;
+  background-color: #68b088;
+  padding: 2px 5px;
+  text-align: left;
+  border-bottom-right-radius: 6px;
+}
+
+#protip a { color: #fff; }
+#protip a:hover { color: #000; }
+
 #qf-box {
   border-radius: 10px;
   padding-left: 3px;
   padding-right: 3px;
-}
-
-#tooltip {
-  color: #dedede;
 }
 
 header,
@@ -99,6 +106,11 @@ footer {
   background-image: none;
 }
 
+#pinned-ctrl:before {
+  font-size: 14px;
+  vertical-align: middle;
+}
+
 header .button {
   box-shadow: none;
   padding: 2px 3px;
@@ -127,20 +139,24 @@ header nav {
   border: none;
 }
 
-#threads {
-  margin-top: 10px;
+.thread {
+  padding: 0 0 5px 0;
 }
 
-.thread {
-  padding: 10px 0 10px 0;
+.thread-ctrl {
+  color: #2b2b2b;
+}
+
+.thread-ctrl .icon:hover {
+  color: #68b088;
 }
 
 .extended.large .thread {
-  max-height: 440px;
+  max-height: 460px;
 }
 
 .extended.small .thread {
-  max-height: 320px;
+  max-height: 340px;
 }
 
 .thumb {
@@ -150,12 +166,6 @@ header nav {
 
 .wide.extended .thread {
   border-bottom: 3px solid rgba(45, 77, 59, 0.06);
-}
-
-.thread-ok:before {
-  margin-top: 2px;
-  margin-left: 2px;
-  background-color: #68b088;
 }
 
 .hl-high {
@@ -237,6 +247,7 @@ header nav {
 
 #tooltip {
   font-size: 13px;
+  color: #dedede;
 }
 
 .post-author { color: #68b088; font-weight: normal; }

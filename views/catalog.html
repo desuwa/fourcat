@@ -3,13 +3,11 @@
 <head>
   <meta charset="utf-8">
   <title>/<%= @opts.slug %>/ - Yotsuba Catalog</title>
-  <meta name="description" content="4chan's /<%= @opts.slug %>/ Catalog displays every thread on a single page.">
-  <meta name="keywords" content="4chan,/<%= @opts.slug %>/,catalog,catalogue,threads,list,stats,statistics">
   <meta name="viewport" content="width=device-width, initial-scale=1.0"><% if @opts.write_rss %>
   <link rel="alternate" title="4chan Catalog - /<%= @opts.slug %>/" href="/<%= @opts.slug %>/feed.rss" type="application/rss+xml"><% end %><% if @opts.country_flags %>
   <link rel="stylesheet" type="text/css" href="/stylesheets/flags.css"><% end %>
   <link id="base-css" data-preset-version="1" rel="stylesheet" type="text/css" href="/stylesheets/style.css">
-  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.10.0/jquery.min.js"></script>
   <script type="text/javascript" src="/javascripts/fourcat-ui.js"></script>
   <script type="text/javascript">
     var fourcat = new $.fourcat();
@@ -20,37 +18,38 @@
 <body>
 <!--<div id="protip"></div>-->
 <script type="text/javascript">
-var catalog = <%= jsonify_threads(threadlist, order) %>;
+var catalog = <%= jsonify_threads(threads, order) %>;
 </script>
 <header>
   <h1 id="title"><%= @opts.title %></h1>
   <nav><ul id="topnav">
     <% if @opts.stats %>
     <li><a class="button" href="/stats.html">Stats</a></li>
-    <li class="sep">|</li><% end %>
+    <% end %>
+    <li class="sep">|</li>
     <li class="slug"><a class="button" href="/a/">/a/</a></li>
     <li class="slug"><a class="button" href="/jp/">/jp/</a></li>
     <li id="more-slugs-btn"><span class="button">…</span></li>
     <li class="sep">|</li>
-    <li><a class="button" target="_blank" href="http://boards.4chan.org/<%= @board %>/"><img data-tip="/<%= @opts.slug %>/ on 4chan" alt="" src="/images/4chan.png"></a></li>
+    <li><a class="button" target="_blank" href="//boards.4chan.org/<%= @board %>/"><img data-tip="/<%= @opts.slug %>/ on 4chan" alt="" src="/images/4chan.png"></a></li>
   </ul></nav>
   <div id="ctrl">
     <div id="info">
-      <a id="refresh" data-label="Delay is" href="" class="button">Refresh</a> Updated <span id="updated"></span> ago<span id="filtered-label"> &mdash; Filtered threads: <span id="filtered-count"></span></span><span id="hidden-label"> &mdash; Hidden threads: <span id="hidden-count"></span> - <a id="filters-clear-hidden" href="">clear</a></span>
+      <a id="refresh" data-label="Delay is" href="" class="button">Refresh</a><span id="sync-now" class="button hidden" data-tip="Sync"></span> Updated <span id="updated"></span> ago<span id="filtered-label"> &mdash; Filtered threads: <span id="filtered-count"></span></span><span id="hidden-label"> &mdash; Hidden threads: <span id="hidden-count"></span> - <a id="filters-clear-hidden" href="">clear</a></span>
     </div>
     <div id="settings">
       <span class="lbl">Order:</span><div id="order-cnt"><span id="order-ctrl" class="button">Date</span>
-      <div id="order-list"><span id="order-date" data-order="date" class="button">Date</span><span id="order-alt" data-order="alt" class="button">Bump</span><span id="order-r" data-order="r" class="button">Reply count</span><span id="order-lr" data-order="lr" class="button">Last reply</span>
+      <div id="order-list"><span id="order-date" data-order="date" class="button">Date</span><span id="order-alt" data-order="alt" class="button">Bump</span><span id="order-r" data-order="r" class="button">Reply count</span><span id="order-lr" data-order="lr" class="button">Last reply</span><span id="order-act" data-order="act" class="button<% if !@opts.activity_range %> disabled" data-tip="Unavailable on this board<% end %>">Activity</span>
       </div></div>
       <span class="lbl">Resize:</span><span id="size-ctrl" class="button"></span>
       <span class="lbl">Teaser:</span><span id="teaser-ctrl" class="button"></span>
       <span class="sep">|</span>
-      <span id="filters-ctrl" class="button">Filters</span>
+      <span class="btn-field"><span id="filters-ctrl" class="button">Filters</span><span id="pinned-ctrl" class="button icon pinned-hide"></span></span>
       <span id="theme-ctrl" class="button">Settings</span>
       <span data-tip="Redirect to the archive" id="proxy-ctrl" class="button">Archive</span>
       <span id="qf-ctrl" class="button">Search</span>
       <span id="qf-cnt">
-        <input type="text" id="qf-box" name="qf-box"><span id="qf-clear" class="button">&#x2716;</span>
+        <% if @opts.deep_search %><span id="qf-deep" data-tip="Full thread search<br><small>Supports wildcard suffixes (*)</small>" data-tiphtml='' class="button icon icon-chat active"></span><% end %><input type="text" id="qf-box" name="qf-box">
       </span>
     </div>
     <div class="clear"></div>
@@ -59,13 +58,7 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
 <div id="content">
 <div id="threads"></div>
 <div id="filters" class="panel">
-  <span id="filters-help-open" class="button right">Help</span><h3>Filters and Highlighters</h3>
-  <hr>
-  <ul>
-    <li>&mdash; <em>Shift-click</em> thumbnails to manually hide threads.
-    <li>&mdash; <em>Alt-click</em> to pin threads to the top.
-  </ul>
-  <hr>
+  <span data-cmd="filter-open-help" class="button right">Help</span><h3>Filters and Highlighters</h3>
   <table id="filter-table">
     <thead>
       <tr>
@@ -75,7 +68,8 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
         <th>Boards</th>
         <th>Color</th>
         <th>Hide</th>
-        <th>Top</th>
+        <th>Pin</th>
+        <th>Strict</th>
         <th>Del</th>
         <th></th>
       </tr>
@@ -84,13 +78,21 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
     </tbody>
     <tfoot>
       <tr>
-        <td colspan="9">
-          <span id="filters-add" class="button left">Add</span>
-          <span class="right">
+        <td colspan="10">
+          <div class="left">
+            <span data-cmd="filter-add" class="button">Add</span>
+            <ul id="filters-import">
+              <li><span class="button">Import</span></li>
+              <li><span data-cmd="filter-import" data-type="file" class="button">File</span></li>
+              <li><span data-cmd="filter-import" data-type="string" class="button">String</span></li>
+            </ul><input id="filters-input" type="file">
+          </div>
+          <div class="right">
             <span id="filters-msg"></span>
-            <span id="filters-save" class="button">Save</span>
-            <span id="filters-close" class="button">Close</span>
-          </span>
+            <a download="filters.txt" target="_blank" href="#" data-cmd="filter-export" class="button">Export</a>
+            <span data-cmd="filter-save" class="button">Save</span>
+            <span data-cmd="filter-close" class="button">Close</span>
+          </div>
         </td>
       </tr>
     </tfoot>
@@ -108,8 +110,8 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
         </tr>
         <tr>
           <td>
-            <span id="filter-palette-close" class="button">Close</span>
-            <span id="filter-palette-clear" class="button">Clear</span>
+            <span data-cmd="filter-close-palette" class="button">Close</span>
+            <span data-cmd="filter-clear-palette" class="button">Clear</span>
           </td>
         </tr>
       </tfoot>
@@ -180,9 +182,10 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
   <h4>Controls</h4>
   <ul>
     <li><strong>On</strong> &mdash; enables or disables the filter.</li>
-    <li><strong>Boards</strong> &mdash; space separated list of boards on which the filter will be active.</li>
+    <li><strong>Boards</strong> &mdash; space separated list of boards on which the filter will be active. Example: <code>a jp tg</code></li>
     <li><strong>Hide</strong> &mdash; hides matched threads.</li>
-    <li><strong>Top</strong> &mdash; puts matched threads on top of the list.</li>
+    <li><strong>Pin</strong> &mdash; puts matched threads on top of the list.</li>
+    <li><strong>Strict</strong> &mdash; when available, <em>Highlight</em> filters can match against additional auto-generated tags. This option disables such behaviour and makes the filter only search inside the subject, comment and filename fields. <em>Hide</em> filters are always "strict".</li>
   </ul>
   <hr>
   <div class="center"><span id="filters-help-close" class="button">Close</span></div>
@@ -191,20 +194,32 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
 <h3>Settings</h3>
   <h4>Options</h4>
   <ul id="theme-set" class="clickset">
-    <li><span id="theme-magnify" class="button clickbox left"></span>&mdash; Magnify small thumbnails.</li>
-    <li><span id="theme-nobinds" class="button clickbox left"></span>&mdash; Disable keybinds.</li>
-    <li><span id="theme-usessl" class="button clickbox left"></span>&mdash; Use HTTPS.</li>
-    <li><span id="theme-nospoiler" class="button clickbox left"></span>&mdash; Don't spoiler images.</li>
-    <li><span id="theme-wide" class="button clickbox left"></span>&mdash; Wide layout.</li>
-    <li><span id="theme-replies" class="button clickbox left"></span>&mdash; Always show last replies in tooltips.</li>
+    <li><span id="theme-magnify" class="button clickbox left"></span> &mdash; Magnify small thumbnails.</li>
+    <li><span id="theme-nobinds" class="button clickbox left"></span> &mdash; Disable keybinds.</li>
+    <li><span id="theme-nospoiler" class="button clickbox left"></span> &mdash; Don't spoiler images.</li>
+    <li><span id="theme-wide" class="button clickbox left"></span> &mdash; Wide layout.</li>
+    <li><span id="theme-replies" class="button clickbox left"></span> &mdash; Always show last replies in tooltips.</li>
+    <li><span id="theme-stickies" class="button clickbox left"></span> &mdash; Always keep stickies on top.</li>
+    <li><span id="theme-quicksearch" class="button clickbox left"></span> &mdash; Use simple search as default search mode.</li>
   </ul>
+  <!--<h4>Sync</h4>
+  <ul>
+    <li><span id="sync-manage" class="button">Manage</span></li>
+  </ul>-->
   <h4>Shortcuts</h4>
   <ul class="clickset">
-    <li><kbd>R</kbd> &mdash; Refresh current page</li>
-    <li><kbd>X</kbd> &mdash; Reorder threads</li>
-    <li><kbd>S</kbd> &mdash; Open search box, <kbd>Esc</kbd> to close</li>
-    <li><kbd>Ctrl</kbd> &mdash; Show last replies in tooltips.</li>
-    <li><kbd data-tip="Right Mouse Button">RMB</kbd> &mdash; Threads context menu (Firefox only)</li>
+    <li><kbd>R</kbd> &mdash; Refresh current page.</li>
+    <li><kbd>X</kbd> &mdash; Reorder threads.</li>
+    <li><kbd>T</kbd> &mdash; Show/Hide pinned threads.
+    <li><kbd>S</kbd> &mdash; Open search box.
+      <ul>
+        <li><kbd>Esc</kbd> &mdash; Close search box.</li>
+        <!--<li><kbd>Tab</kbd> &mdash; Toggle full thread search.</li>-->
+      </ul>
+    </li>
+    <li><kbd>Ctrl</kbd> + hover thumbnail &mdash; Show last replies in tooltips.</li>
+    <li><kbd>Shift</kbd> + <kbd data-tip="Left Mouse Button click">LMB</kbd> on thumbnail &mdash; Hide thread.</li>
+    <li><kbd>Alt</kbd> + <kbd data-tip="Left Mouse Button click">LMB</kbd> on thumbnail &mdash; Pin thread.</li>
   </ul>
   <h4>Custom Menu</h4>
   <div>Limit the main menu to the following boards</div>
@@ -245,12 +260,11 @@ var catalog = <%= jsonify_threads(threadlist, order) %>;
       contentUrl: '<%= @opts.content_uri %>'
     <% end %>
     }
-    fourcat.init(opts);
-    fourcat.loadCatalog(catalog);
+    fourcat.init(catalog, opts);
   }, false);
 </script>
 <footer>
-  Running <a href="https://github.com/desuwa/fourcat">4cat <%= VERSION %></a> &mdash; Data pulled from <a href="http://www.4chan.org">4chan.org</a> &mdash; <% if @opts.write_rss %><a target="_blank" href="/<%= @opts.slug %>/feed.rss">RSS</a> feed<% end %> &mdash; <a target="_blank" href="mailto:admin@neet.tv">Contact</a>
+  Running <a href="https://github.com/desuwa/fourcat">4cat <%= VERSION %></a> &mdash; Data pulled from <a href="//www.4chan.org">4chan.org</a> &mdash; <% if @opts.write_rss %><a target="_blank" href="/<%= @opts.slug %>/feed.rss">RSS</a> feed<% end %>
 </footer>
 </body>
 </html>
